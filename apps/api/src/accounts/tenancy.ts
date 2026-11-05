@@ -38,6 +38,9 @@ export class Tenancy {
   readonly system: Db;
   private readonly dir: string;
   private readonly pool = new Map<string, Db>();
+  private readonly inFlight = new Map<string, number>();
+  private readonly pendingClose = new Map<string, Db>();
+
 
   constructor(dir: string) {
     this.dir = dir;
@@ -124,9 +127,33 @@ export class Tenancy {
     }
   }
 
+  /**
+   * Marks the account's database as in use by a request; the returned function ends that use. A
+   * release while requests are in flight closes the handle only when the last one ends.
+   */
+  hold(accountId: string): () => void {
+    this.inFlight.set(accountId, (this.inFlight.get(accountId) ?? 0) + 1);
+    let ended = false;
+    return () => {
+      if (ended) return;
+      ended = true;
+      const left = (this.inFlight.get(accountId) ?? 1) - 1;
+      if (left > 0) {
+        this.inFlight.set(accountId, left);
+        return;
+      }
+      this.inFlight.delete(accountId);
+      this.pendingClose.get(accountId)?.close();
+      this.pendingClose.delete(accountId);
+    };
+  }
+
   private release(accountId: string): void {
-    this.pool.get(accountId)?.close();
+    const db = this.pool.get(accountId);
     this.pool.delete(accountId);
+    if (!db) return;
+    if (this.inFlight.has(accountId)) this.pendingClose.set(accountId, db);
+    else db.close();
   }
 
   private deleteFiles(dbName: string): boolean {
@@ -185,6 +212,8 @@ export class Tenancy {
   close(): void {
     for (const db of this.pool.values()) db.close();
     this.pool.clear();
+    for (const db of this.pendingClose.values()) db.close();
+    this.pendingClose.clear();
     this.system.close();
   }
 }

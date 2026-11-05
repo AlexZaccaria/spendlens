@@ -35,9 +35,14 @@ export function requireAccount(tenancy: Tenancy): MiddlewareHandler<AccountEnv> 
     const session = token ? sessionAccount(tenancy.system, token) : null;
     if (!token || !session) throw new HttpError(401, 'unauthenticated', 'Sign in first.');
     if (session.renewedUntil) setSessionCookie(c, token, session.renewedUntil);
-    c.set('account', session.account);
-    c.set('db', tenancy.db(session.account.id));
-    await next();
+    const done = tenancy.hold(session.account.id);
+    try {
+      c.set('account', session.account);
+      c.set('db', tenancy.db(session.account.id));
+      await next();
+    } finally {
+      done();
+    }
   };
 }
 
