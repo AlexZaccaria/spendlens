@@ -19,11 +19,17 @@ function assertAiReady(db: Db): void {
 }
 
 /** Streams the import as Server-Sent Events: `event: <type>` + `data: <ImportEvent JSON>`. */
-function streamImport(c: Context, db: Db, inputs: ImportInput[], force: boolean) {
+function streamImport(c: Context<AccountEnv>, db: Db, inputs: ImportInput[], force: boolean) {
+  // Own hold: the middleware's one ends when the handler returns, before the stream finishes.
+  const done = c.var.holdAccount();
   return streamSSE(c, async (stream) => {
-    const abort = new AbortController();
-    stream.onAbort(() => abort.abort());
-    await runImport(db, inputs, (event) => stream.writeSSE({ event: event.type, data: JSON.stringify(event) }), { force, signal: abort.signal });
+    try {
+      const abort = new AbortController();
+      stream.onAbort(() => abort.abort());
+      await runImport(db, inputs, (event) => stream.writeSSE({ event: event.type, data: JSON.stringify(event) }), { force, signal: abort.signal });
+    } finally {
+      done();
+    }
   });
 }
 

@@ -8,7 +8,7 @@ import type { Db } from '../db/database.ts';
 import { HttpError } from './validate.ts';
 
 /** What every route behind the session middleware gets: the account and its own database. */
-export type AccountEnv = { Variables: { account: Account; db: Db } };
+export type AccountEnv = { Variables: { account: Account; db: Db; holdAccount: () => () => void } };
 
 export const SESSION_COOKIE = 'spendlens_session';
 
@@ -39,6 +39,7 @@ export function requireAccount(tenancy: Tenancy): MiddlewareHandler<AccountEnv> 
     try {
       c.set('account', session.account);
       c.set('db', tenancy.db(session.account.id));
+      c.set('holdAccount', () => tenancy.hold(session.account.id));
       await next();
     } finally {
       done();
@@ -58,13 +59,15 @@ export function sessionView(account: Account): SessionAccount {
 }
 
 /**
- * The client address. Behind a reverse proxy the peer is the proxy itself, so when TRUST_PROXY=1 the
- * last x-forwarded-for entry (the one the proxy appended) is used; otherwise the header is ignored
- * because a client could forge it. In-process test requests have no peer address.
+ * The client address. Behind reverse proxies the peer is the nearest proxy, so TRUST_PROXY=N (the number
+ * of trusted proxies, 1 for a single proxy) takes the Nth x-forwarded-for entry from the end; unset or
+ * invalid, the header is ignored because a client could forge it. In-process test requests have no peer address.
  */
 export function clientIp(c: Context): string {
-  if (process.env.TRUST_PROXY === '1') {
-    const forwarded = c.req.header('x-forwarded-for')?.split(',').pop()?.trim();
+  const hops = Number.parseInt(process.env.TRUST_PROXY ?? '', 10);
+  if (Number.isInteger(hops) && hops >= 1) {
+    const entries = (c.req.header('x-forwarded-for') ?? '').split(',').map((e) => e.trim()).filter(Boolean);
+    const forwarded = entries[Math.max(0, entries.length - hops)];
     if (forwarded) return forwarded;
   }
   try {
