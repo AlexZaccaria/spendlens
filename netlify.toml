@@ -4,6 +4,9 @@
 [build]
   command = "npm run build:static"
   publish = "apps/web/dist/web/browser"
+  # A push that changes nothing the site is built from (README, docs, samples, LICENSE) is not
+  # built nor deployed: exit 0 = no difference = skip.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- apps packages package.json package-lock.json netlify.toml"
 
 [build.environment]
   NODE_VERSION = "26"

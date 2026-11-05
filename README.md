@@ -2,6 +2,9 @@
 
 **Your monthly spending, at a glance — from any statement, receipt or note, in any language.**
 
+**[Live demo → spendlensdemo.netlify.app](https://spendlensdemo.netlify.app)** · one click, no sign-up: a year of
+sample data that runs entirely in your browser.
+
 Drop a German bank CSV, a French OFX card export, a Spanish Excel sheet, an Italian utility bill
 PDF, a photo of a London receipt or a few lines typed in a hurry: an AI model reads them, files
 every transaction under a two-level category, writes a clean title in **Italian and English**, and
@@ -10,8 +13,9 @@ goes — rent, bills, food and *which* food — without a single manual mapping.
 
 Sign in to your own account, or try the demo in one click: every visitor gets a private copy of
 a year of sample data for 24 hours. Each account is its own SQLite file run by Node.js; there is
-no cloud database. The online demo needs no server at all: it is a static site where the same API
-runs inside the browser, on SQLite compiled to WebAssembly ([Static demo](#static-demo-on-netlify)).
+no cloud database. The [online demo](https://spendlensdemo.netlify.app) needs no server at all: it is a static
+site where the same API runs inside the browser, on SQLite compiled to WebAssembly
+([Static demo](#static-demo-on-netlify)).
 
 | Overview (dark, Italian) | Drill-down: Food → products and merchants (light, English) |
 |---|---|
@@ -173,10 +177,11 @@ its data becomes the demo, its AI settings go to a new empty owner account
 
 ## Static demo on Netlify
 
-The public demo is a static site with no server and no functions. The API itself runs inside
-the page: the same Hono routes, repositories and migrations as on Node, bundled for the browser,
-with SQLite compiled to WebAssembly in place of `node:sqlite`. The web app's static build sends its
-`/api` requests to it instead of the network, so the app code is unchanged.
+The public demo, [spendlensdemo.netlify.app](https://spendlensdemo.netlify.app), is a static site with no server
+and no functions. The API itself runs inside the page: the same Hono routes, repositories and
+migrations as on Node, bundled for the browser, with SQLite compiled to WebAssembly in place of
+`node:sqlite`. The web app's static build sends its `/api` requests to it instead of the network,
+so the app code is unchanged.
 
 ```
 npm run build:static                     what Netlify runs (netlify.toml)
@@ -232,8 +237,10 @@ Publishing with Netlify's Git integration, once:
    fallback of client-side routes to `index.html` and the `application/wasm` type. Deploy.
 
 From then on every push to the production branch (`main`) rebuilds and publishes the site, a pull
-request gets its own deploy preview, and a build that fails leaves the published version online.
-The site name and a custom domain are set in the project's configuration on Netlify.
+request gets its own deploy preview, and a build that fails leaves the published version online. A
+push that only touches what the site is not built from (README, docs, samples) is skipped: the
+`ignore` command in `netlify.toml` finds no change under `apps/`, `packages/` and the build files.
+The site name (here `spendlensdemo`) and a custom domain are set in the project's configuration on Netlify.
 
 The LICENSE does not allow publishing the app: these steps are for the author's demo, and any
 other public deployment needs written permission.
