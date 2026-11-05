@@ -1,0 +1,20 @@
+# Netlify builds the static demo on every push (README, "Static demo on Netlify"): the API bundled
+# for the browser, then the Angular app that runs it. No server, no functions.
+
+[build]
+  command = "npm run build:static"
+  publish = "apps/web/dist/web/browser"
+
+[build.environment]
+  NODE_VERSION = "26"
+
+# Client-side routes (/transactions, /settings…) all load the app.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/local-api/*.wasm"
+  [headers.values]
+    Content-Type = "application/wasm"

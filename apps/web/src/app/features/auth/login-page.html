@@ -1,0 +1,48 @@
+<app-auth-layout>
+  <h1 class="text-2xl font-semibold tracking-tight">{{ t().auth.signInTitle }}</h1>
+  <p class="mt-1 text-sm text-ink-2">{{ t().auth.signInSubtitle }}</p>
+
+  <app-demo-cta class="mt-8" />
+
+  <div class="my-7 flex items-center gap-3 text-xs text-muted" aria-hidden="true">
+    <span class="h-px flex-1 bg-line"></span>{{ t().auth.or }}<span class="h-px flex-1 bg-line"></span>
+  </div>
+
+  @if (!signInOpen()) {
+    <div class="mb-6 flex gap-3 rounded-xl border border-line bg-surface-2 p-4" role="status">
+      <svg lucideIcon="lock" size="18" class="mt-0.5 shrink-0"></svg>
+      <div>
+        <p class="text-sm font-semibold">{{ t().auth.signInUnavailable }}</p>
+        <p class="mt-1 text-sm text-ink-2">{{ t().auth.signInUnavailableBody }}</p>
+      </div>
+    </div>
+  }
+
+  <form class="flex flex-col gap-4" novalidate [attr.aria-disabled]="!signInOpen() || null" (submit)="signIn($event)">
+    <fieldset class="flex flex-col gap-4" [disabled]="!signInOpen()" [class.opacity-60]="!signInOpen()">
+      <div>
+        <label for="email" class="label">{{ t().auth.email }}</label>
+        <input id="email" type="email" class="input h-10" autocomplete="username" [formField]="login.email" aria-describedby="email-error" />
+        @if (login.email().touched() && login.email().invalid()) {
+          <p id="email-error" class="mt-1 text-xs text-bad">{{ login.email().errors()[0]?.message }}</p>
+        }
+      </div>
+      <div>
+        <label for="password" class="label">{{ t().auth.password }}</label>
+        <input id="password" type="password" class="input h-10" autocomplete="current-password" [formField]="login.password" aria-describedby="password-error" />
+        @if (login.password().touched() && login.password().invalid()) {
+          <p id="password-error" class="mt-1 text-xs text-bad">{{ login.password().errors()[0]?.message }}</p>
+        }
+      </div>
+      @if (error(); as message) {
+        <p class="rounded-lg bg-surface-2 px-3 py-2 text-sm text-bad" role="alert">{{ message }}</p>
+      }
+      <button type="submit" class="btn-outline h-10 w-full" [disabled]="busy()">{{ busy() ? t().auth.signingIn : t().auth.signIn }}</button>
+    </fieldset>
+  </form>
+
+  <p class="mt-8 text-center text-sm text-muted">
+    {{ t().auth.noAccount }}
+    <a routerLink="/register" class="font-medium text-ink underline-offset-4 hover:underline">{{ t().auth.register }}</a>
+  </p>
+</app-auth-layout>

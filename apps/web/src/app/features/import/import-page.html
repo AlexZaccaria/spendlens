@@ -1,0 +1,237 @@
+<header class="mb-4">
+  <h1 class="text-2xl font-semibold tracking-tight">{{ t().import.title }}</h1>
+  <p class="mt-1 max-w-3xl text-sm text-ink-2">{{ t().import.subtitle }}</p>
+</header>
+
+@if (auth.isDemo()) {
+  <div class="card mb-4 flex flex-wrap items-center gap-4 p-4" role="status">
+    <svg lucideIcon="lock" size="20" class="shrink-0"></svg>
+    <div class="min-w-0 flex-1">
+      <p class="text-sm font-semibold">{{ t().auth.demoAiOff }}</p>
+      <p class="text-sm text-ink-2">{{ t().auth.demoAiOffBody }}</p>
+    </div>
+  </div>
+} @else if (state.meta.value() && !state.aiReady()) {
+  <div class="card mb-4 flex flex-wrap items-center gap-4 border-[var(--status-warning)] p-4" role="status">
+    <svg lucideIcon="key-round" size="20" class="shrink-0"></svg>
+    <div class="min-w-0 flex-1">
+      <p class="text-sm font-semibold">{{ t().import.aiMissingTitle }}</p>
+      <p class="text-sm text-ink-2">{{ t().import.aiMissingBody }}</p>
+    </div>
+    <a routerLink="/settings" class="btn-primary">{{ t().ai.configure }}</a>
+  </div>
+}
+
+<!-- Both columns start at the same line: every block is a card with its own header. -->
+<div class="grid items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+  <div class="flex flex-col gap-4">
+    <section class="card flex flex-col" [attr.aria-label]="t().import.title">
+      <div class="flex flex-col gap-4 p-5">
+        <label
+          class="group flex cursor-pointer items-center gap-4 rounded-xl border border-dashed border-line px-5 py-6 transition-colors hover:border-ink-2 hover:bg-surface-2 focus-within:border-ink"
+          [class.!border-ink]="dragging()"
+          [class.bg-surface-2]="dragging()"
+          (dragover)="onDragOver($event)"
+          (dragleave)="dragging.set(false)"
+          (drop)="onDrop($event)"
+        >
+          <span class="grid size-12 shrink-0 place-items-center rounded-xl bg-surface-2 text-ink-2 transition-colors group-hover:bg-surface-3 group-hover:text-ink">
+            <svg lucideIcon="upload" size="22"></svg>
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-sm font-semibold">
+              {{ t().import.drop }}
+              <span class="font-normal text-ink-2">{{ t().import.or }}</span>&ngsp;<span class="underline underline-offset-2">{{ t().import.browse }}</span>
+            </span>
+            <span class="mt-1 block text-xs text-muted">{{ t().import.formats }}</span>
+          </span>
+          <input type="file" multiple class="sr-only" [accept]="accept" (change)="onPick($event)" />
+        </label>
+
+        @if (files().length) {
+          <ul class="flex flex-wrap gap-2" [attr.aria-label]="t().import.selected(files().length)">
+            @for (f of files(); track f.name + f.size) {
+              <li class="flex h-8 max-w-full items-center gap-2 rounded-lg border border-line bg-surface-2 pr-1 pl-2.5 text-xs">
+                <svg [lucideIcon]="fileIcon(f.name, f.type)" size="14" class="shrink-0 text-muted"></svg>
+                <span class="truncate font-medium">{{ f.name }}</span>
+                <span class="num text-muted">{{ size(f.size) }}</span>
+                <button type="button" class="inline-flex size-6 cursor-pointer items-center justify-center rounded-md text-muted hover:bg-surface-3 hover:text-ink" [attr.aria-label]="t().import.remove + ' ' + f.name" (click)="remove(f)">
+                  <svg lucideIcon="x" size="13"></svg>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+
+        <div>
+          <label for="paste" class="label">{{ t().import.paste }}</label>
+          <textarea
+            id="paste"
+            rows="3"
+            class="input h-auto resize-y py-2.5 leading-relaxed"
+            [placeholder]="t().import.pastePlaceholder"
+            [value]="text()"
+            (input)="text.set($any($event.target).value)"
+          ></textarea>
+        </div>
+      </div>
+
+      <footer class="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-3">
+        <label class="flex cursor-pointer items-center gap-2 text-xs text-ink-2">
+          <input type="checkbox" class="size-4 accent-[var(--ink)]" [checked]="force()" (change)="force.set($any($event.target).checked)" />
+          {{ t().import.force }}
+        </label>
+        <div class="ml-auto flex items-center gap-3">
+          @if (files().length) {
+            <span class="text-xs text-muted">{{ t().import.selected(files().length) }}</span>
+          }
+          <button type="button" class="btn-primary" [disabled]="!canStart()" (click)="start()">
+            <svg [lucideIcon]="stream.running() ? 'loader-circle' : 'sparkles'" size="15" [class.animate-spin]="stream.running()"></svg>
+            {{ stream.running() ? t().import.starting : t().import.start }}
+          </button>
+        </div>
+      </footer>
+    </section>
+
+    <!-- Live progress, announced politely to screen readers. -->
+    @if (stream.files().length || stream.error() || stream.running()) {
+      <section class="card overflow-hidden" aria-live="polite">
+        @if (stream.running()) {
+          <div class="h-1 bg-surface-2" role="progressbar" [attr.aria-valuenow]="Math.round(progress() * 100)" aria-valuemin="0" aria-valuemax="100">
+            <div class="h-full bg-ink transition-[width] duration-500" [style.width.%]="Math.max(4, progress() * 100)"></div>
+          </div>
+        }
+        <ul class="divide-y divide-line">
+          @for (f of stream.files(); track f.index) {
+            <li class="flex items-center gap-3 px-5 py-3">
+              @switch (f.status) {
+                @case ('running') {
+                  <svg lucideIcon="loader-circle" size="18" class="shrink-0 animate-spin text-muted"></svg>
+                }
+                @case ('done') {
+                  <svg lucideIcon="circle-check" size="18" class="shrink-0" style="color: var(--status-good)"></svg>
+                }
+                @case ('error') {
+                  <svg lucideIcon="circle-x" size="18" class="shrink-0" style="color: var(--status-critical)"></svg>
+                }
+              }
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium">{{ f.filename }}</p>
+                <p class="truncate text-xs text-ink-2">
+                  @if (f.status === 'running' && f.stage) {
+                    {{ t().import.stage[f.stage] }}
+                    @if (f.stage === 'extracting' && f.chunks > 1) {
+                      · {{ t().import.chunk(f.chunk + 1 > f.chunks ? f.chunks : f.chunk + 1, f.chunks) }}
+                    }
+                  } @else if (f.status === 'done' && f.record) {
+                    {{ t().import.fileDone(f.record.txCount, f.record.duplicateCount) }}
+                  } @else if (f.status === 'error') {
+                    {{ errorText(f.error) }}
+                  }
+                </p>
+              </div>
+              @if (f.record && f.record.txCount > 0) {
+                <a routerLink="/transactions" [queryParams]="{ importId: f.record.id }" class="btn-outline btn-sm">{{ t().common.viewTransactions }}</a>
+              }
+            </li>
+          }
+        </ul>
+        @if (stream.error(); as err) {
+          <p class="border-t border-line px-5 py-3 text-sm text-bad" role="alert">{{ errorText(err) }}</p>
+        }
+        @if (stream.outcome(); as o) {
+          <div class="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface-2/50 px-5 py-3">
+            <p class="text-sm font-medium">{{ t().import.done(o.imported, o.duplicates, o.failed) }}</p>
+            @if (o.imported > 0) {
+              <a routerLink="/transactions" [queryParams]="{ review: true }" class="btn-outline btn-sm"><svg lucideIcon="flag" size="13"></svg>{{ t().import.review }}</a>
+            }
+          </div>
+        }
+      </section>
+    }
+  </div>
+
+  <section class="card flex flex-col" aria-labelledby="history-title">
+    <header class="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+      <h2 id="history-title" class="text-base font-semibold tracking-tight">{{ t().import.history }}</h2>
+      @if (history.value()?.length) {
+        <span class="chip">{{ history.value()!.length }}</span>
+      }
+    </header>
+    <ul class="divide-y divide-line">
+      @for (r of history.value() ?? []; track r.id) {
+        <li class="flex flex-col gap-2 px-5 py-4">
+          <div class="flex items-start gap-3">
+            <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-ink-2">
+              <svg [lucideIcon]="fileIcon(r.filename, r.mime)" size="17"></svg>
+            </span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-2">
+                <p class="truncate text-sm font-medium" [title]="r.filename">{{ r.filename }}</p>
+                @if (r.status === 'done') {
+                  <span class="num shrink-0 text-xs font-medium text-ink-2">{{ t().transactions.count(r.txCount) }}</span>
+                } @else if (r.status === 'error') {
+                  <span class="shrink-0 text-xs font-medium text-bad">{{ t().import.failed }}</span>
+                } @else {
+                  <svg lucideIcon="loader-circle" size="15" class="shrink-0 animate-spin text-muted"></svg>
+                }
+              </div>
+              <p class="truncate text-xs text-muted">
+                {{ i18n.date(r.createdAt, 'medium') }}@if (r.documentKind) { · {{ t().import.kinds[r.documentKind] }} }@if (r.institution) { · {{ r.institution }} }@if (r.sourceLanguage) { · {{ i18n.languageName(r.sourceLanguage) }} }
+              </p>
+            </div>
+          </div>
+
+          @if (r.summary) {
+            <p class="line-clamp-2 text-sm text-ink-2" [title]="i18n.text(r.summary)">{{ i18n.text(r.summary) }}</p>
+          }
+          @if (r.status === 'error' && r.error) {
+            <p class="text-xs text-bad">{{ recordError(r) }}</p>
+          }
+          @if (r.warnings.length && openWarnings() === r.id) {
+            <ul class="flex list-disc flex-col gap-1 pl-5 text-xs text-ink-2">
+              @for (w of r.warnings; track $index) {
+                <li>{{ i18n.text(w) }}</li>
+              }
+            </ul>
+          }
+
+          @if (confirmUndo() === r.id) {
+            <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface-2 px-3 py-2" role="alert">
+              <span class="text-xs text-ink-2">{{ t().import.undoConfirm }}</span>
+              <span class="ml-auto flex gap-1.5">
+                <button type="button" class="btn-ghost btn-sm" (click)="confirmUndo.set(null)">{{ t().common.cancel }}</button>
+                <button type="button" class="btn-danger btn-sm" (click)="undo(r)">{{ t().import.undo }}</button>
+              </span>
+            </div>
+          } @else {
+            <div class="flex flex-wrap items-center gap-1.5">
+              @if (r.txCount > 0) {
+                <a routerLink="/transactions" [queryParams]="{ importId: r.id }" class="btn-outline btn-sm">{{ t().common.viewTransactions }}</a>
+              }
+              <button type="button" class="btn-ghost btn-sm" [disabled]="stream.running() || !state.aiReady()" (click)="stream.retry(r.id)">
+                <svg lucideIcon="refresh-cw" size="13"></svg>{{ t().import.retry }}
+              </button>
+              @if (r.warnings.length) {
+                <button type="button" class="btn-ghost btn-sm" [attr.aria-expanded]="openWarnings() === r.id" (click)="openWarnings.set(openWarnings() === r.id ? null : r.id)">
+                  <svg lucideIcon="triangle-exclamation-point" size="13"></svg>{{ r.warnings.length }}
+                </button>
+              }
+              <button type="button" class="btn-danger-ghost btn-sm -mr-2.5 ml-auto" (click)="confirmUndo.set(r.id)">
+                <svg lucideIcon="undo-2" size="13"></svg>{{ t().import.undo }}
+              </button>
+            </div>
+          }
+          @if (r.provider) {
+            <p class="text-[0.7rem] text-muted">{{ r.model }} · {{ t().import.tokens(r.inputTokens, r.outputTokens) }}</p>
+          }
+        </li>
+      } @empty {
+        <li class="flex flex-col items-center gap-2 px-5 py-10 text-center">
+          <svg lucideIcon="file-up" size="22" class="text-muted"></svg>
+          <p class="text-sm text-muted">{{ t().import.historyEmpty }}</p>
+        </li>
+      }
+    </ul>
+  </section>
+</div>

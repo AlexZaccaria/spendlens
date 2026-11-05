@@ -1,0 +1,33 @@
+{
+  "name": "spendlens",
+  "version": "0.1.0",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "packageManager": "npm@11.6.3",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c cyan,magenta \"npm run dev -w @spendlens/api\" \"npm run start -w web\"",
+    "build": "npm run build -w web",
+    "start": "npm run build && npm run start -w @spendlens/api",
+    "build:static": "npm run build:browser -w @spendlens/api && npm run build -w web -- --configuration production,static",
+    "start:static": "npm run build:browser -w @spendlens/api && npm run start -w web -- --configuration static",
+    "seed": "npm run seed -w @spendlens/api --",
+    "account": "npm run account -w @spendlens/api --",
+    "demo:snapshot": "npm run demo:snapshot -w @spendlens/api",
+    "samples": "node tools/make-samples.ts",
+    "typecheck": "tsc -p packages/contracts --noEmit && tsc -p apps/api --noEmit && npm run typecheck -w web",
+    "test": "npm test -w @spendlens/contracts && npm test -w @spendlens/api && npm test -w web -- --watch=false"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "concurrently": "^10.0.6",
+    "typescript": "~6.0.2"
+  },
+  "engines": {
+    "node": ">=26.0.0"
+  }
+}

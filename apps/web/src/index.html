@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <title>Spendlens</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Spendlens — AI-powered monthly spending tracker. Drop any bank statement, receipt or note, in any language." />
+    <meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <script>
+      // Apply the saved theme and language before the first paint (no flash).
+      (function () {
+        try {
+          // Until the user picks light or dark, the OS setting decides.
+          var t = localStorage.getItem('spendlens.theme');
+          var dark = t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+          var l = localStorage.getItem('spendlens.lang');
+          if (l === 'it' || l === 'en') document.documentElement.lang = l;
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      /* Inside <app-root> until the app starts (the static demo first loads its API): appears only
+         if the start takes a moment, and says so if the browser cannot run it. */
+      [data-boot] { min-height: 100dvh; display: grid; place-items: center; padding: 1.5rem; text-align: center; font: 500 0.875rem/1.5 system-ui, sans-serif; color: var(--muted); animation: boot-in 0.3s ease-out 0.4s both; }
+      [data-boot] .boot-failed, [data-boot='failed'] .boot-waiting, html:not([lang='it']) [data-boot] [lang='it'], html[lang='it'] [data-boot] [lang='en'] { display: none; }
+      [data-boot='failed'] .boot-failed { display: block; }
+      .boot-waiting::before { content: ''; display: inline-block; width: 0.9rem; height: 0.9rem; margin-right: 0.5rem; vertical-align: -0.15rem; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: boot-spin 0.8s linear infinite; }
+      @keyframes boot-in { from { opacity: 0; } }
+      @keyframes boot-spin { to { transform: rotate(1turn); } }
+      @media (prefers-reduced-motion: reduce) { .boot-waiting::before { animation: none; } }
+    </style>
+  </head>
+  <body>
+    <app-root>
+      <div data-boot role="status">
+        <p class="boot-waiting">Spendlens</p>
+        <div class="boot-failed">
+          <p lang="it">Spendlens non riesce a partire in questo browser: prova con un browser aggiornato.</p>
+          <p lang="en">Spendlens can’t start in this browser: try an up-to-date one.</p>
+        </div>
+      </div>
+    </app-root>
+  </body>
+</html>

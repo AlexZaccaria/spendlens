@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tesco receipt (sample)</title>
+<style>
+  /* Rendered by tools/make-samples.ts with headless Chrome into samples/en-receipt-tesco.png.
+     The slight tilt, the table behind the paper and the faded thermal print make it look like a
+     phone photo of a real receipt rather than a clean digital one. */
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: radial-gradient(circle at 30% 20%, #cfc8bd, #a99f91 80%);
+    display: flex; justify-content: center; align-items: flex-start; padding-top: 34px;
+    font-family: "Courier New", Courier, monospace; color: #2b2b2b;
+  }
+  .paper {
+    width: 318px; padding: 22px 20px 30px; background: #fbfaf6;
+    transform: rotate(-2.2deg); box-shadow: 0 10px 24px rgba(0, 0, 0, .35);
+    font-size: 13px; line-height: 1.32; letter-spacing: .2px;
+    filter: contrast(.92);
+  }
+  .c { text-align: center; }
+  .logo { font: 900 34px/1 Arial, sans-serif; letter-spacing: 2px; color: #1a3e8c; }
+  .sub { font: italic 700 15px/1.2 Arial, sans-serif; color: #c8102e; margin-bottom: 8px; }
+  .row { display: flex; justify-content: space-between; }
+  .ind { padding-left: 14px; font-size: 12px; color: #555; }
+  hr { border: 0; border-top: 1px dashed #777; margin: 8px 0; }
+  .big { font-weight: 700; font-size: 15px; }
+  .faded { color: #6b6b6b; }
+</style>
+</head>
+<body>
+  <div class="paper">
+    <div class="c logo">TESCO</div>
+    <div class="c sub">Express</div>
+    <div class="c">54 Long Acre, London WC2E 9JQ</div>
+    <div class="c">VAT No. GB 220 4302 31</div>
+    <hr>
+    <div class="row"><span>MEAL DEAL</span><span>£3.85</span></div>
+    <div class="ind">Sandwich / Drink / Snack</div>
+    <div class="row"><span>BANANAS LOOSE</span><span>£0.50</span></div>
+    <div class="ind">0.540 kg @ £0.92/kg</div>
+    <div class="row"><span>SEMI SKIMMED MILK 2PT</span><span>£1.45</span></div>
+    <div class="row"><span>HOVIS WHOLEMEAL 800G</span><span>£1.40</span></div>
+    <div class="row"><span>WALKERS CRISPS 6PK</span><span>£1.95</span></div>
+    <div class="row"><span>CLUBCARD PRICE SAVING</span><span>-£0.89</span></div>
+    <hr>
+    <div class="row big"><span>5 ITEMS&nbsp;&nbsp;BALANCE DUE</span><span>£8.26</span></div>
+    <div class="row"><span>CONTACTLESS VISA</span><span>£8.26</span></div>
+    <div class="faded">************4821&nbsp;&nbsp;AUTH 08H2K1</div>
+    <hr>
+    <div>Clubcard points earned: 8</div>
+    <div class="faded">18/10/26 13:42 STORE 2391 TILL 4 OP 118</div>
+    <div class="faded">TRN 4471</div>
+    <hr>
+    <div class="c">THANK YOU FOR SHOPPING AT TESCO</div>
+    <div class="c faded">Every little helps</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<div class="mb-3">
+  <h2 class="text-base font-semibold tracking-tight">{{ t().dashboard.daily }}</h2>
+  <p class="text-xs text-muted">{{ t().dashboard.dailyHint }}</p>
+</div>
+<div class="grid grid-cols-7 gap-1.5 text-center text-[0.65rem] font-medium text-muted" aria-hidden="true">
+  @for (d of weekdays(); track $index) {
+    <span>{{ d }}</span>
+  }
+</div>
+<div class="mt-1.5 grid grid-cols-7 gap-1.5">
+  @for (cell of cells(); track $index) {
+    @if (cell?.future) {
+      <span class="grid aspect-square place-items-center rounded-md border border-dashed border-line text-[0.7rem] text-muted" aria-hidden="true">{{ cell!.day }}</span>
+    } @else if (cell) {
+      <a
+        routerLink="/transactions"
+        [queryParams]="{ from: cell.date, to: cell.date }"
+        class="group relative grid aspect-square place-items-center rounded-md text-[0.7rem] font-medium transition-transform hover:scale-110 focus-visible:scale-110"
+        [style.background]="'var(--seq-' + cell.step + ')'"
+        [style.color]="textColor(cell.step)"
+        [attr.aria-label]="cell.label"
+        [title]="cell.label"
+      >
+        {{ cell.day }}
+      </a>
+    } @else {
+      <span></span>
+    }
+  }
+</div>
+<div class="mt-4 flex items-center justify-end gap-1.5 text-[0.7rem] text-muted" aria-hidden="true">
+  <span>{{ i18n.money(0, summary().baseCurrency, { whole: true }) }}</span>
+  @for (step of [0, 1, 2, 3, 4, 5, 6]; track step) {
+    <span class="size-3 rounded-sm" [style.background]="'var(--seq-' + step + ')'"></span>
+  }
+  <span>{{ i18n.money(max(), summary().baseCurrency, { whole: true }) }}</span>
+</div>

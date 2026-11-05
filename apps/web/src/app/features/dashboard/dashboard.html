@@ -1,0 +1,70 @@
+<header class="mb-4 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">{{ t().dashboard.title }}</h1>
+    <p class="mt-1 min-h-5 text-sm text-muted">{{ subtitle() }}</p>
+  </div>
+  @if (!empty()) {
+    <app-period-nav />
+  }
+</header>
+
+@if (empty()) {
+  <section class="card relative overflow-hidden px-6 py-16 text-center sm:px-12">
+    <div class="mx-auto mb-6 flex w-fit gap-1.5" aria-hidden="true">
+      @for (slot of [1, 2, 3, 4, 5, 6, 7, 8]; track slot) {
+        <span class="h-10 w-2.5 rounded-full" [style.background]="'var(--series-' + slot + ')'" [style.height.px]="16 + ((slot * 37) % 40)"></span>
+      }
+    </div>
+    <h2 class="text-xl font-semibold tracking-tight">{{ t().dashboard.emptyTitle }}</h2>
+    <p class="mx-auto mt-2 max-w-lg text-sm text-ink-2">{{ t().dashboard.emptyBody }}</p>
+    <div class="mt-8 flex flex-wrap justify-center gap-3">
+      <a routerLink="/import" class="btn-primary"><svg lucideIcon="file-up" size="16"></svg>{{ t().dashboard.emptyImport }}</a>
+      <button type="button" class="btn-outline" [disabled]="seeding()" (click)="loadDemo()">
+        <svg [lucideIcon]="seeding() ? 'loader-circle' : 'sparkles'" size="16" [class.animate-spin]="seeding()"></svg>
+        {{ t().dashboard.emptyDemo }}
+      </button>
+    </div>
+  </section>
+} @else if (error() && !summary()) {
+  <section class="card flex flex-col items-center gap-3 px-6 py-12 text-center" role="alert">
+    <svg lucideIcon="triangle-exclamation-point" size="28" class="text-muted"></svg>
+    <p class="text-sm text-ink-2">{{ t().common.error }}</p>
+    <button type="button" class="btn-outline" (click)="retry()">{{ t().common.retry }}</button>
+  </section>
+} @else if (summary(); as s) {
+  <div class="grid grid-cols-1 gap-4 transition-opacity lg:grid-cols-12" [class.opacity-60]="loading()" [attr.aria-busy]="loading()">
+    <app-hero-card class="lg:col-span-5" [summary]="s" />
+    <app-kpi-tiles class="lg:col-span-7" [summary]="s" />
+
+    <!-- At a glance: what the money buys and where, both added up over the whole month. -->
+    <app-product-list class="lg:col-span-6" [summary]="s" />
+    <app-merchant-list class="lg:col-span-6" [summary]="s" />
+
+    <app-spending-explorer class="lg:col-span-12" [summary]="s" [transactions]="expenses() ?? []" />
+
+    <app-insights-card
+      class="lg:col-span-4"
+      [insight]="insight()"
+      [aiReady]="state.aiReady()"
+      [demo]="auth.isDemo()"
+      [generating]="generating()"
+      [hasSpending]="s.totals.expenseMinor > 0"
+      (generate)="generateInsight()"
+    />
+    @if (trend(); as tr) {
+      <app-trend-chart class="lg:col-span-8" [trend]="tr" [month]="state.month()" />
+    }
+
+    <app-recurring-list class="lg:col-span-7" [items]="recurring()" />
+    <app-calendar-heatmap class="lg:col-span-5" [summary]="s" />
+
+    <app-largest-list class="lg:col-span-12" [items]="s.largest" />
+  </div>
+} @else {
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-12" aria-hidden="true">
+    <div class="skeleton h-56 lg:col-span-5"></div>
+    <div class="skeleton h-56 lg:col-span-7"></div>
+    <div class="skeleton h-96 lg:col-span-8"></div>
+    <div class="skeleton h-96 lg:col-span-4"></div>
+  </div>
+}

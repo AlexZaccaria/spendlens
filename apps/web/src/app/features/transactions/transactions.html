@@ -1,0 +1,208 @@
+<header class="mb-4 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">{{ t().transactions.title }}</h1>
+    <p class="mt-1 min-h-5 text-sm text-muted">
+      @if (page(); as p) {
+        {{ t().transactions.count(p.total) }} · {{ t().transactions.total }}
+        <span class="num font-medium text-ink">{{ i18n.money(p.sumBaseMinor, state.baseCurrency()) }}</span>
+        @if (charged(p); as c) {
+          &ngsp;<span class="num">({{ c }})</span>
+        }
+      }
+    </p>
+  </div>
+  <div class="flex gap-2">
+    <button type="button" class="btn-outline" (click)="exportCsv()" [disabled]="!rows().length">
+      <svg lucideIcon="download" size="16"></svg>
+      <span class="hidden sm:inline">{{ t().transactions.exportCsv }}</span>
+    </button>
+    <button type="button" class="btn-primary" (click)="editing.set('new')">
+      <svg lucideIcon="plus" size="16"></svg>
+      {{ t().transactions.add }}
+    </button>
+  </div>
+</header>
+
+<!-- One filter row above the content it scopes. -->
+<div class="mb-4 flex flex-wrap items-center gap-2">
+  <label class="relative min-w-56 flex-1 sm:max-w-sm">
+    <span class="sr-only">{{ t().common.search }}</span>
+    <svg lucideIcon="search" size="16" class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted"></svg>
+    <input
+      type="search"
+      class="input pl-9"
+      [placeholder]="t().transactions.searchPlaceholder"
+      [value]="search()"
+      (input)="search.set($any($event.target).value)"
+    />
+  </label>
+
+  <label class="w-44">
+    <span class="sr-only">{{ t().transactions.month }}</span>
+    <select class="select" (change)="setPeriod($any($event.target).value)">
+      <option value="all" [selected]="periodValue() === 'all'">{{ t().transactions.allPeriods }}</option>
+      @if (periodValue() === 'custom') {
+        <option value="custom" selected>{{ i18n.date(from() ?? '', 'short') }} – {{ i18n.date(to() ?? from() ?? '', 'short') }}</option>
+      }
+      @for (m of months(); track m) {
+        <option [value]="m" [selected]="periodValue() === m">{{ i18n.month(m) }}</option>
+      }
+    </select>
+  </label>
+
+  <label class="w-56">
+    <span class="sr-only">{{ t().transactions.category }}</span>
+    <select appCategoryOptions [allowRoots]="true" [placeholder]="t().transactions.allCategories" [selectedValue]="category()" (change)="setParams({ category: $any($event.target).value || null })"></select>
+  </label>
+
+  <div role="radiogroup" [attr.aria-label]="t().transactions.kind.all" class="flex rounded-lg border border-line bg-surface p-0.5 text-sm">
+    @for (k of kinds; track k) {
+      <button
+        type="button"
+        role="radio"
+        [attr.aria-checked]="kindValue() === k"
+        (click)="setParams({ kind: k === 'all' ? null : k })"
+        class="h-8 cursor-pointer rounded-md px-2.5 font-medium text-muted transition-colors hover:text-ink aria-checked:bg-surface-2 aria-checked:text-ink"
+      >
+        {{ t().transactions.kind[k] }}
+      </button>
+    }
+  </div>
+
+  <button
+    type="button"
+    class="btn-outline"
+    [attr.aria-pressed]="reviewOnly()"
+    [class.!bg-ink]="reviewOnly()"
+    [class.!text-page]="reviewOnly()"
+    (click)="setParams({ review: reviewOnly() ? null : true })"
+  >
+    <svg lucideIcon="flag" size="15"></svg>
+    {{ t().transactions.reviewOnly }}
+  </button>
+
+  @if (importId()) {
+    <span class="chip">{{ t().transactions.fromImport }}</span>
+  }
+  @if (hasFilters()) {
+    <button type="button" class="btn-ghost" (click)="clearFilters()">
+      <svg lucideIcon="x" size="15"></svg>
+      {{ t().transactions.clearFilters }}
+    </button>
+  }
+</div>
+
+@if (selected().size > 0) {
+  <div class="sticky top-16 z-20 mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-ink px-3 py-2 text-sm text-page shadow-lg lg:top-4">
+    <span class="mr-2 font-medium">{{ t().transactions.selected(selected().size) }}</span>
+    <label class="w-56">
+      <span class="sr-only">{{ t().transactions.moveTo }}</span>
+      <select appCategoryOptions [placeholder]="t().transactions.moveTo" class="!border-white/20 !bg-white/10 !text-page" (change)="bulkCategory($event)"></select>
+    </label>
+    <button type="button" class="btn h-9 bg-white/10 hover:bg-white/20" (click)="bulk({ needsReview: false })">
+      <svg lucideIcon="check" size="15"></svg>
+      {{ t().transactions.markReviewed }}
+    </button>
+    <button type="button" class="btn ml-auto h-9 hover:bg-white/10" (click)="clearSelection()" [attr.aria-label]="t().common.close">
+      <svg lucideIcon="x" size="15"></svg>
+    </button>
+  </div>
+}
+
+<div class="card overflow-hidden transition-opacity" [class.opacity-60]="loading()" [attr.aria-busy]="loading()">
+  <table class="w-full text-sm">
+    <thead class="border-b border-line bg-surface-2/60 text-left text-xs text-muted">
+      <tr>
+        <th scope="col" class="w-10 py-2.5 pl-4">
+          <input type="checkbox" class="size-4 accent-[var(--ink)]" [checked]="allSelected()" (change)="toggleAll()" [attr.aria-label]="t().transactions.selectAll" />
+        </th>
+        <th scope="col" class="hidden w-28 py-2.5 font-medium sm:table-cell">{{ t().transactions.date }}</th>
+        <th scope="col" class="py-2.5 font-medium">{{ t().transactions.description }}</th>
+        <th scope="col" class="hidden py-2.5 font-medium md:table-cell">{{ t().transactions.category }}</th>
+        <th scope="col" class="py-2.5 pr-4 text-right font-medium">{{ t().transactions.amount }}</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-line">
+      @for (tx of rows(); track tx.id) {
+        <tr class="group cursor-pointer transition-colors hover:bg-surface-2/70" [class.bg-surface-2]="selected().has(tx.id)" (click)="editing.set(tx)">
+          <td class="py-3 pl-4 align-top" (click)="$event.stopPropagation()">
+            <input type="checkbox" class="mt-1 size-4 accent-[var(--ink)]" [checked]="selected().has(tx.id)" (change)="toggle(tx.id)" [attr.aria-label]="t().transactions.selectRow" />
+          </td>
+          <td class="hidden py-3 align-top text-ink-2 sm:table-cell">
+            <span class="num whitespace-nowrap">{{ i18n.date(tx.date, 'medium') }}</span>
+          </td>
+          <td class="max-w-0 py-3 pr-3 align-top">
+            <div class="flex items-start gap-3">
+              <app-category-icon class="mt-0.5 md:hidden" [categoryId]="tx.categoryId" [size]="28" />
+              <div class="min-w-0">
+                <button type="button" class="block max-w-full truncate text-left font-medium hover:underline" (click)="$event.stopPropagation(); editing.set(tx)">
+                  {{ i18n.text(tx.title) }}
+                </button>
+                <p class="truncate font-mono text-[0.7rem] text-muted" [title]="tx.rawDescription">{{ tx.rawDescription }}</p>
+                <p class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-ink-2">
+                  <span class="num sm:hidden">{{ i18n.date(tx.date, 'short') }}</span>
+                  @if (tx.merchant) {
+                    <span class="inline-flex items-center gap-1"><svg lucideIcon="store" size="12"></svg>{{ tx.merchant }}</span>
+                  }
+                  @if (tx.needsReview) {
+                    <span class="inline-flex items-center gap-1 rounded-full bg-[var(--status-warning)]/20 px-1.5 py-px font-medium text-ink">
+                      <svg lucideIcon="flag" size="11"></svg>{{ t().transactions.needsReview }}
+                    </span>
+                  }
+                  @if (tx.recurring) {
+                    <span class="inline-flex items-center gap-1 rounded-full bg-surface-3 px-1.5 py-px"><svg lucideIcon="repeat" size="11"></svg>{{ t().transactions.recurring }}</span>
+                  }
+                  @if (itemCount(tx); as n) {
+                    <span class="inline-flex items-center gap-1 rounded-full bg-surface-3 px-1.5 py-px"><svg lucideIcon="receipt" size="11"></svg>{{ t().transactions.itemsCount(n) }}</span>
+                  }
+                </p>
+                @if (tx.note) {
+                  <p class="mt-1 text-xs text-muted italic">{{ i18n.text(tx.note) }}</p>
+                }
+              </div>
+            </div>
+          </td>
+          <td class="hidden py-3 align-top md:table-cell">
+            <span class="inline-flex items-center gap-2">
+              <app-category-icon [categoryId]="tx.categoryId" [size]="24" />
+              <span class="text-ink-2">{{ i18n.category(tx.categoryId) }}</span>
+            </span>
+          </td>
+          <td class="py-3 pr-4 text-right align-top whitespace-nowrap">
+            @let a = amounts(tx);
+            <span class="num font-medium" [class.text-good]="tx.amountMinor > 0">{{ a.main }}</span>
+            @if (a.original) {
+              <span class="num block text-xs text-muted">{{ a.original }}</span>
+            }
+            @if (page()?.matchedBaseMinor?.[tx.id]; as part) {
+              <span class="num block text-xs text-ink-2">{{ t().transactions.ofWhich(i18n.money(part, state.baseCurrency()), i18n.category(category() ?? '')) }}</span>
+            }
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="5" class="px-4 py-16 text-center text-sm text-muted">
+            @if (loading()) {
+              {{ t().common.loading }}
+            } @else {
+              {{ t().transactions.empty }}
+              @if (!state.hasData()) {
+                <a routerLink="/import" class="ml-1 font-medium text-ink underline">{{ t().dashboard.emptyImport }}</a>
+              }
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (hasMore()) {
+  <div class="mt-4 flex justify-center">
+    <button type="button" class="btn-outline" [disabled]="loading()" (click)="limit.update((l) => l + 100)">{{ t().transactions.loadMore }}</button>
+  </div>
+}
+
+@if (editing() !== undefined) {
+  <app-transaction-editor [transaction]="editing() === 'new' ? null : $any(editing())" (closed)="editing.set(undefined)" />
+}

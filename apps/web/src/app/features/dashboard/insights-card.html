@@ -1,0 +1,41 @@
+<div class="mb-3 flex items-center justify-between gap-2">
+  <h2 class="flex items-center gap-2 text-base font-semibold tracking-tight">
+    <svg lucideIcon="sparkles" size="16"></svg>
+    {{ t().dashboard.insights }}
+  </h2>
+  @if (insight() && aiReady()) {
+    <button type="button" class="icon-btn size-8" [title]="t().dashboard.insightsRegenerate" [attr.aria-label]="t().dashboard.insightsRegenerate" [disabled]="generating()" (click)="generate.emit()">
+      <svg lucideIcon="refresh-cw" size="15" [class.animate-spin]="generating()"></svg>
+    </button>
+  }
+</div>
+
+@if (insight(); as ins) {
+  <p class="text-[0.95rem] leading-snug font-medium">{{ i18n.text(ins.headline) }}</p>
+  <ul class="mt-4 flex flex-col gap-3">
+    @for (b of ins.bullets; track $index) {
+      <li class="flex gap-2.5 text-sm text-ink-2">
+        <svg
+          [lucideIcon]="b.tone === 'positive' ? 'circle-check' : b.tone === 'negative' ? 'circle-exclamation-point' : 'info'"
+          size="16"
+          class="mt-0.5 shrink-0"
+          [style.color]="b.tone === 'positive' ? 'var(--status-good)' : b.tone === 'negative' ? 'var(--status-serious)' : 'var(--muted)'"
+        ></svg>
+        <span>{{ i18n.text(b.text) }}</span>
+      </li>
+    }
+  </ul>
+  <p class="mt-auto pt-4 text-[0.7rem] text-muted">{{ t().dashboard.insightsBy(ins.model) }} · {{ i18n.date(ins.generatedAt, 'medium') }}</p>
+} @else {
+  <div class="flex flex-1 flex-col items-start justify-center gap-4">
+    <p class="text-sm text-ink-2">{{ demo() ? t().dashboard.insightsDemo : t().dashboard.insightsEmpty }}</p>
+    @if (aiReady()) {
+      <button type="button" class="btn-primary" [disabled]="generating() || !hasSpending()" (click)="generate.emit()">
+        <svg [lucideIcon]="generating() ? 'loader-circle' : 'sparkles'" size="16" [class.animate-spin]="generating()"></svg>
+        {{ t().dashboard.insightsGenerate }}
+      </button>
+    } @else if (!demo()) {
+      <a routerLink="/settings" class="btn-outline"><svg lucideIcon="key-round" size="16"></svg>{{ t().ai.configure }}</a>
+    }
+  </div>
+}

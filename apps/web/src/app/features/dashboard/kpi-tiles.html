@@ -1,0 +1,38 @@
+<div class="card flex flex-col p-5">
+  <h2 class="card-title">{{ t().dashboard.income }}</h2>
+  <p class="mt-2 text-3xl font-semibold tracking-tight">{{ money(s().totals.incomeMinor) }}</p>
+  @if (charged(s().totals.charged.income); as c) {
+    <p class="num text-xs text-ink-2">{{ c }}</p>
+  }
+  <app-delta class="mt-auto pt-2" [current]="s().totals.incomeMinor" [reference]="s().previous.incomeMinor || null" [higherIsBetter]="true" />
+</div>
+<div class="card flex flex-col p-5">
+  <h2 class="card-title">{{ t().dashboard.net }}</h2>
+  <p class="mt-2 text-3xl font-semibold tracking-tight" [class.text-bad]="s().totals.netMinor < 0">{{ money(s().totals.netMinor) }}</p>
+  @if (charged(s().totals.charged.net); as c) {
+    <p class="num text-xs text-ink-2">{{ c }}</p>
+  }
+  <app-delta class="mt-auto pt-2" [current]="s().totals.netMinor" [reference]="previousNet()" [higherIsBetter]="true" [currency]="s().baseCurrency" />
+</div>
+<div class="card flex flex-col p-5">
+  <h2 class="card-title">{{ t().dashboard.savingsRate }}</h2>
+  <p class="mt-2 text-3xl font-semibold tracking-tight">{{ rate() === null ? '—' : i18n.percent(rate()!) }}</p>
+  @if (rate() !== null) {
+    <div class="mt-auto pt-3">
+      <div class="h-1.5 overflow-hidden rounded-full bg-[var(--seq-1)]" role="presentation">
+        <div class="h-full rounded-full bg-[var(--seq-5)]" [style.width.%]="clampedRate() * 100"></div>
+      </div>
+    </div>
+  }
+</div>
+<a routerLink="/transactions" [queryParams]="{ review: true }" class="card group flex flex-col p-5 transition-colors hover:bg-surface-2">
+  <h2 class="card-title flex items-center gap-1.5">
+    <svg lucideIcon="flag" size="14"></svg>
+    {{ t().dashboard.toReview }}
+  </h2>
+  <p class="mt-2 text-3xl font-semibold tracking-tight">{{ i18n.integer(s().totals.reviewCount) }}</p>
+  <p class="mt-auto flex items-center gap-1 pt-2 text-xs text-muted group-hover:text-ink">
+    {{ t().dashboard.toReviewHint }}
+    <svg lucideIcon="chevron-right" size="14"></svg>
+  </p>
+</a>

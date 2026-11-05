@@ -1,0 +1,41 @@
+<aside class="relative hidden flex-col justify-between overflow-hidden border-r border-line bg-surface p-10 lg:flex xl:p-14">
+  <app-logo />
+  <div class="max-w-md">
+    <h2 class="text-4xl leading-tight font-semibold tracking-tight text-balance">{{ t().auth.heroTitle }}</h2>
+    <p class="mt-4 text-base leading-relaxed text-ink-2">{{ t().auth.heroBody }}</p>
+
+    <figure class="mt-10" [attr.aria-label]="previewLabel()">
+      <div class="flex h-3 gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
+        @for (p of preview(); track p.id) {
+          <span class="h-full" [style.width.%]="p.share" [style.background]="p.color"></span>
+        }
+      </div>
+      <figcaption class="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm" aria-hidden="true">
+        @for (p of preview(); track p.id) {
+          <span class="flex items-center gap-2">
+            <span class="size-2.5 shrink-0 rounded-full" [style.background]="p.color"></span>
+            <span class="flex-1 truncate text-ink-2">{{ p.label }}</span>
+            <span class="num font-medium">{{ p.share }}%</span>
+          </span>
+        }
+      </figcaption>
+    </figure>
+
+    <ul class="mt-10 flex flex-col gap-3 text-sm text-ink-2">
+      @for (point of t().auth.heroPoints; track $index) {
+        <li class="flex items-start gap-2.5"><svg lucideIcon="check" size="16" class="mt-0.5 shrink-0 text-ink"></svg>{{ point }}</li>
+      }
+    </ul>
+  </div>
+  <p class="text-xs text-muted">Angular 22 · Node.js 26 · SQLite · Claude</p>
+</aside>
+
+<main class="relative flex flex-col px-5 py-6 sm:px-8">
+  <div class="flex items-center justify-between gap-3 lg:justify-end">
+    <app-logo class="lg:hidden" />
+    <div class="flex items-center gap-2"><app-preferences /></div>
+  </div>
+  <div class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+    <ng-content />
+  </div>
+</main>

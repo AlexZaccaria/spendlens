@@ -1,0 +1,199 @@
+<dialog
+  #dialog
+  (close)="onClose()"
+  aria-labelledby="editor-title"
+  class="m-auto max-h-[calc(100dvh-2rem)] w-[min(34rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line bg-surface p-0 text-ink shadow-2xl"
+>
+  <form (submit)="save($event)" novalidate class="flex max-h-[calc(100dvh-2rem-2px)] flex-col">
+    <header class="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+      <div class="flex min-w-0 items-center gap-3">
+        <app-category-icon [categoryId]="model().categoryId" [size]="32" />
+        <h2 id="editor-title" class="truncate text-base font-semibold">{{ isNew() ? t().editor.newTitle : t().editor.title }}</h2>
+      </div>
+      <button type="button" class="icon-btn" [attr.aria-label]="t().common.close" (click)="close()">
+        <svg lucideIcon="x" size="18"></svg>
+      </button>
+    </header>
+
+    <div class="relative flex flex-col gap-4 overflow-y-auto px-5 py-5">
+      @if (transaction(); as tx) {
+        <div class="rounded-xl bg-surface-2 px-3.5 py-3 text-xs">
+          <p class="font-medium text-ink-2">{{ t().transactions.original }}</p>
+          <p class="mt-1 font-mono break-words text-ink">{{ tx.rawDescription }}</p>
+          <p class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-muted">
+            <span>{{ t().editor.source[tx.source] }}</span>
+            <span>{{ t().editor.confidence(i18n.percent(tx.confidence)) }}</span>
+            @if (tx.account) {
+              <span>{{ tx.account }}</span>
+            }
+            @if (tx.reference) {
+              <span class="font-mono">{{ t().transactions.reference(tx.reference) }}</span>
+            }
+            @if (tx.time) {
+              <span class="num">{{ tx.time }}</span>
+            }
+          </p>
+        </div>
+      }
+
+      <div>
+        <label for="ed-title" class="label">{{ t().editor.name }} <span class="font-normal text-muted">· {{ t().editor.nameHint(langName()) }}</span></label>
+        <input id="ed-title" class="input" [formField]="editor.title" autocomplete="off" />
+        @if (editor.title().touched() && editor.title().invalid()) {
+          <p class="mt-1 text-xs text-bad" role="alert">{{ editor.title().errors()[0]?.message }}</p>
+        }
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label for="ed-merchant" class="label">{{ t().editor.merchant }} <span class="font-normal text-muted">· {{ t().common.optional }}</span></label>
+          <input id="ed-merchant" class="input" [formField]="editor.merchant" autocomplete="off" />
+        </div>
+        <div>
+          <label for="ed-date" class="label">{{ t().editor.date }}</label>
+          <input id="ed-date" type="date" class="input" [formField]="editor.date" />
+        </div>
+      </div>
+
+      <div>
+        <label for="ed-category" class="label">{{ t().editor.category }}</label>
+        <select id="ed-category" appCategoryOptions [selectedValue]="model().categoryId" (change)="setCategory($event)"></select>
+        @if (!isNew() && categoryChanged() && merchantName()) {
+          <label class="mt-2.5 flex cursor-pointer items-start gap-2.5 text-sm text-ink-2">
+            <input type="checkbox" class="mt-0.5 size-4 accent-[var(--ink)]" [formField]="editor.applyToMerchant" />
+            {{ t().editor.applyToMerchant(merchantName()) }}
+          </label>
+        }
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-[1fr_8rem]">
+        <div>
+          <label for="ed-amount" class="label">{{ t().editor.amount }}</label>
+          <div class="flex gap-2">
+            <div role="radiogroup" [attr.aria-label]="t().editor.direction" class="flex shrink-0 rounded-lg border border-line bg-surface p-0.5 text-sm">
+              @for (d of directions; track d) {
+                <button
+                  type="button"
+                  role="radio"
+                  [attr.aria-checked]="model().direction === d"
+                  (click)="setDirection(d)"
+                  class="cursor-pointer rounded-md px-2.5 font-medium text-muted transition-colors hover:text-ink aria-checked:bg-surface-2 aria-checked:text-ink"
+                >
+                  {{ t().editor.directions[d] }}
+                </button>
+              }
+            </div>
+            <input id="ed-amount" type="number" step="0.01" class="input num min-w-0 flex-1" [formField]="editor.amount" />
+          </div>
+          @if (transaction(); as tx) {
+            @if (tx.currency !== state.baseCurrency()) {
+              <p class="num mt-1 text-xs text-ink-2">
+                @if (tx.baseAmountMinor !== null) {
+                  {{ t().editor.converted(i18n.money(tx.baseAmountMinor, state.baseCurrency()), i18n.date(tx.date, 'medium')) }}
+                } @else {
+                  {{ t().transactions.noRate }}
+                }
+              </p>
+            }
+          }
+          @if (editor.amount().touched() && editor.amount().invalid()) {
+            <p class="mt-1 text-xs text-bad" role="alert">{{ editor.amount().errors()[0]?.message }}</p>
+          }
+        </div>
+        <div>
+          <label for="ed-currency" class="label">{{ t().editor.currency }}</label>
+          @if (isNew()) {
+            <select id="ed-currency" class="select" [formField]="editor.currency">
+              @for (c of currencies; track c) {
+                <option [value]="c">{{ c }}</option>
+              }
+            </select>
+          } @else {
+            <input id="ed-currency" class="input" [value]="model().currency" readonly />
+          }
+        </div>
+      </div>
+
+      @if (canBeFixed()) {
+        <label class="-mt-1 flex cursor-pointer items-start gap-2.5 text-sm">
+          <input type="checkbox" class="mt-0.5 size-4 accent-[var(--ink)]" [formField]="editor.fixed" />
+          <span>
+            <span class="flex items-center gap-1.5"><svg lucideIcon="repeat" size="14" class="text-muted"></svg>{{ t().editor.fixed }}</span>
+            <span class="mt-0.5 block text-xs text-muted">{{ t().editor.fixedHint }}</span>
+          </span>
+        </label>
+      }
+
+      <div>
+        <label for="ed-note" class="label">{{ t().editor.note }} <span class="font-normal text-muted">· {{ t().common.optional }}</span></label>
+        <textarea id="ed-note" rows="2" class="input h-auto py-2" [formField]="editor.note"></textarea>
+      </div>
+
+      @if (transaction()?.items?.length) {
+        <section aria-labelledby="ed-items">
+          <h3 id="ed-items" class="label flex items-center gap-1.5"><svg lucideIcon="receipt" size="13"></svg>{{ t().editor.items }}</h3>
+          <p class="mb-2 text-xs text-muted">{{ t().editor.itemsHint }}</p>
+          <ul class="flex flex-col divide-y divide-line rounded-xl border border-line">
+            @for (item of transaction()!.items; track item.id) {
+              <li class="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2">
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm" [class.italic]="item.adjustment">
+                    {{ i18n.text(item.title) }}
+                    @if (item.quantity && item.quantity !== 1) {
+                      <span class="text-xs text-muted">× {{ i18n.decimal(item.quantity) }}</span>
+                    }
+                  </p>
+                  @if (item.description) {
+                    <p class="truncate font-mono text-[0.7rem] text-muted">{{ item.description }}</p>
+                  }
+                </div>
+                <span class="num w-24 text-right text-sm">
+                  {{ i18n.money(item.amountMinor, transaction()!.currency) }}
+                  @if (transaction()!.currency !== state.baseCurrency() && item.baseAmountMinor !== null) {
+                    <span class="block text-[0.7rem] text-muted">{{ i18n.money(item.baseAmountMinor, state.baseCurrency()) }}</span>
+                  }
+                </span>
+                @if (!item.adjustment) {
+                  <label class="w-full sm:w-48">
+                    <span class="sr-only">{{ t().editor.itemCategory }}: {{ i18n.text(item.title) }}</span>
+                    <select appCategoryOptions class="h-8 text-xs" [kinds]="['expense']" [selectedValue]="itemCategory(item)" (change)="setItemCategory(item, $event)"></select>
+                  </label>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (!isNew()) {
+        <label class="flex cursor-pointer items-center gap-2.5 text-sm">
+          <input type="checkbox" class="size-4 accent-[var(--ink)]" [formField]="editor.needsReview" />
+          <svg lucideIcon="flag" size="14" class="text-muted"></svg>
+          {{ t().editor.needsReview }}
+        </label>
+      }
+    </div>
+
+    <footer class="flex items-center justify-between gap-3 border-t border-line px-5 py-4">
+      @if (!isNew()) {
+        @if (confirmDelete()) {
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-ink-2">{{ t().editor.deleteConfirm }}</span>
+            <button type="button" class="btn-danger h-8 px-2.5" [disabled]="busy()" (click)="remove()">{{ t().common.delete }}</button>
+          </div>
+        } @else {
+          <button type="button" class="btn-ghost text-bad" (click)="confirmDelete.set(true)">
+            <svg lucideIcon="trash" size="15"></svg>
+            {{ t().common.delete }}
+          </button>
+        }
+      } @else {
+        <span></span>
+      }
+      <div class="flex gap-2">
+        <button type="button" class="btn-outline" (click)="close()">{{ t().common.cancel }}</button>
+        <button type="submit" class="btn-primary" [disabled]="busy()">{{ busy() ? t().common.saving : t().common.save }}</button>
+      </div>
+    </footer>
+  </form>
+</dialog>

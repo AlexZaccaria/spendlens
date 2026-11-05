@@ -1,0 +1,117 @@
+<dialog
+  #dialog
+  (close)="onClose()"
+  aria-labelledby="fixed-title"
+  class="m-auto max-h-[calc(100dvh-2rem)] w-[min(30rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line bg-surface p-0 text-ink shadow-2xl"
+>
+  <form (submit)="save($event)" novalidate class="flex max-h-[calc(100dvh-2rem-2px)] flex-col">
+    <header class="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+      <div class="flex min-w-0 items-center gap-3">
+        @if (model().categoryId) {
+          <app-category-icon [categoryId]="model().categoryId" [size]="32" />
+        }
+        <h2 id="fixed-title" class="truncate text-base font-semibold">{{ title() }}</h2>
+      </div>
+      <button type="button" class="icon-btn" [attr.aria-label]="t().common.close" (click)="close()">
+        <svg lucideIcon="x" size="18"></svg>
+      </button>
+    </header>
+
+    <div class="relative flex flex-col gap-4 overflow-y-auto px-5 py-5">
+      @if (detected() && item(); as it) {
+        <p class="rounded-xl bg-surface-2 px-3.5 py-3 text-xs leading-relaxed text-ink-2">
+          {{ t().dashboard.fixed.detectedHint(it.occurrences, i18n.date(it.lastDate ?? it.nextDate, 'medium')) }}
+        </p>
+      }
+
+      <div>
+        <label for="fixed-merchant" class="label">{{ t().dashboard.fixed.merchant }}</label>
+        <input id="fixed-merchant" class="input" list="fixed-merchants" autocomplete="off" [formField]="fixed.merchant" aria-describedby="fixed-merchant-hint" />
+        <datalist id="fixed-merchants">
+          @for (m of merchants(); track m) {
+            <option [value]="m"></option>
+          }
+        </datalist>
+        @if (fixed.merchant().touched() && fixed.merchant().invalid()) {
+          <p class="mt-1 text-xs text-bad" role="alert">{{ fixed.merchant().errors()[0]?.message }}</p>
+        } @else {
+          <p id="fixed-merchant-hint" class="mt-1 text-xs text-muted">{{ t().dashboard.fixed.merchantHint }}</p>
+        }
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-[1fr_8rem]">
+        <div>
+          <label for="fixed-amount" class="label">{{ t().dashboard.fixed.amount }}</label>
+          <input id="fixed-amount" type="number" inputmode="decimal" step="0.01" class="input num" [formField]="fixed.amount" />
+          @if (fixed.amount().touched() && fixed.amount().invalid()) {
+            <p class="mt-1 text-xs text-bad" role="alert">{{ fixed.amount().errors()[0]?.message }}</p>
+          } @else if (model().currency !== state.baseCurrency() && item()?.original) {
+            <p class="num mt-1 text-xs text-ink-2">= {{ i18n.money(item()!.averageMinor, state.baseCurrency()) }}</p>
+          }
+        </div>
+        <div>
+          <label for="fixed-currency" class="label">{{ t().dashboard.fixed.currency }}</label>
+          <select id="fixed-currency" class="select" [formField]="fixed.currency">
+            @for (c of currencies; track c) {
+              <option [value]="c">{{ c }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label for="fixed-category" class="label">{{ t().dashboard.fixed.category }}</label>
+          <select id="fixed-category" appCategoryOptions [kinds]="['expense']" [placeholder]="'—'" [selectedValue]="model().categoryId" (change)="setCategory($event)"></select>
+          @if (fixed.categoryId().touched() && fixed.categoryId().invalid()) {
+            <p class="mt-1 text-xs text-bad" role="alert">{{ fixed.categoryId().errors()[0]?.message }}</p>
+          }
+        </div>
+        <div>
+          <label for="fixed-cadence" class="label">{{ t().dashboard.fixed.cadence }}</label>
+          <select id="fixed-cadence" class="select" [formField]="fixed.cadenceDays">
+            @for (c of cadences; track c) {
+              <option [value]="c">{{ t().dashboard.fixed.cadences[c] }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label for="fixed-next" class="label">{{ t().dashboard.fixed.nextDate }}</label>
+          <input id="fixed-next" type="date" class="input num" [formField]="fixed.nextDate" />
+        </div>
+      </div>
+    </div>
+
+    <footer class="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4">
+      <div>
+        @if (detected()) {
+          <button type="button" class="btn-danger-ghost -ml-3" [disabled]="busy()" (click)="notFixed()">
+            <svg lucideIcon="x" size="15"></svg>
+            {{ t().dashboard.fixed.notFixed }}
+          </button>
+        } @else if (declared()) {
+          @if (confirmDelete()) {
+            <span class="flex items-center gap-2">
+              <span class="text-xs text-ink-2">{{ t().dashboard.fixed.deleteConfirm }}</span>
+              <button type="button" class="btn-danger btn-sm" [disabled]="busy()" (click)="remove()">{{ t().common.delete }}</button>
+            </span>
+          } @else {
+            <button type="button" class="btn-danger-ghost -ml-3" (click)="confirmDelete.set(true)">
+              <svg lucideIcon="trash" size="15"></svg>
+              {{ t().common.delete }}
+            </button>
+          }
+        }
+      </div>
+      <div class="ml-auto flex items-center gap-2">
+        <button type="button" class="btn-ghost" (click)="close()">{{ t().common.cancel }}</button>
+        <button type="submit" class="btn-primary" [disabled]="busy()">
+          {{ busy() ? t().common.saving : detected() ? t().dashboard.fixed.saveDetected : t().common.save }}
+        </button>
+      </div>
+    </footer>
+  </form>
+</dialog>

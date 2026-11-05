@@ -1,0 +1,143 @@
+<div class="mb-3 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <h2 class="text-base font-semibold tracking-tight">{{ t().dashboard.whereMoneyGoes }}</h2>
+    <p class="text-xs text-muted">{{ t().dashboard.explorerHint }}</p>
+  </div>
+</div>
+
+<nav [attr.aria-label]="t().dashboard.path" class="mb-3 flex min-h-8 flex-wrap items-center gap-1 text-sm">
+  @if (parent()) {
+    <button type="button" class="icon-btn mr-1 size-8" [attr.aria-label]="t().dashboard.up" [title]="t().dashboard.up" (click)="up()">
+      <svg lucideIcon="chevron-left" size="18"></svg>
+    </button>
+  }
+  @for (step of path(); track step.id; let last = $last) {
+    @if (last) {
+      <span aria-current="page" class="rounded-md px-1.5 py-0.5 font-semibold">{{ step.label }}</span>
+    } @else {
+      <button type="button" class="cursor-pointer rounded-md px-1.5 py-0.5 text-ink-2 hover:bg-surface-2 hover:text-ink" (click)="focusId.set(step.id)">
+        {{ step.label }}
+      </button>
+      <svg lucideIcon="chevron-right" size="14" class="text-muted"></svg>
+    }
+  }
+</nav>
+
+@if (tree().children.length) {
+  <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+    <app-chart class="h-[28rem] min-h-0 cursor-pointer" [options]="options()" [label]="ariaLabel()" (pick)="onTile($event)" />
+
+    <aside class="flex min-w-0 flex-col" aria-live="polite">
+      <div class="flex items-start gap-3">
+        @if (node().level !== 'all') {
+          <app-category-icon [categoryId]="node().categoryId" [size]="36" />
+        }
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-medium text-ink-2">{{ node().label }}</p>
+          <p class="text-3xl font-semibold tracking-tight">{{ money(node().totalMinor) }}</p>
+          @if (original(node(), true); as charged) {
+            <p class="num text-sm text-ink-2">{{ charged }}</p>
+          }
+        </div>
+      </div>
+      <div class="mt-1.5 flex flex-col gap-0.5 text-xs text-muted">
+        @if (parent(); as par) {
+          <span>{{ t().dashboard.shareOf(i18n.percent(node().totalMinor / (par.totalMinor || 1)), par.label) }} · {{ t().dashboard.transactionsCount(node().txCount) }}</span>
+        } @else {
+          <span>{{ t().dashboard.transactionsCount(node().txCount) }}</span>
+        }
+        @if (previous() !== null) {
+          <app-delta [current]="node().totalMinor" [reference]="previous()" [label]="t().dashboard.vsPreviousShort" />
+        }
+        @if (node().refundedMinor > 0) {
+          <span>{{ t().dashboard.netOfRefunds(money(node().refundedMinor, false)) }}</span>
+        }
+      </div>
+
+      @if (rows().length) {
+        <h3 class="mt-5 mb-1.5 text-xs font-semibold tracking-wide text-muted uppercase">{{ t().dashboard.inside }}</h3>
+        <ul class="-mx-2 flex flex-col">
+          @for (row of shownRows(); track row.id) {
+            <li>
+              <button type="button" class="flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-surface-2" (click)="select(row)">
+                @if (row.level === 'category' || row.level === 'subcategory') {
+                  <app-category-icon [categoryId]="row.categoryId" [size]="26" />
+                } @else {
+                  <span class="size-2.5 shrink-0 rounded-full" [style.background]="color(row)"></span>
+                }
+                <span class="min-w-0 flex-1">
+                  <span class="flex items-baseline justify-between gap-2">
+                    <span class="flex min-w-0 items-center gap-1.5">
+                      @if (row.groupKind === 'product') {
+                        <span class="inline-flex shrink-0 text-muted" [title]="t().dashboard.productHint"><svg lucideIcon="receipt" size="12"></svg></span>
+                      }
+                      <span class="truncate text-sm">{{ row.label }}</span>
+                    </span>
+                    <span class="flex items-baseline gap-2">
+                      @if (original(row, true); as charged) {
+                        <span class="num text-xs text-muted">{{ charged }}</span>
+                      }
+                      <span class="num text-sm font-medium">{{ money(row.totalMinor) }}</span>
+                    </span>
+                  </span>
+                  <span class="mt-1 flex items-center gap-2">
+                    <span class="h-1 flex-1 overflow-hidden rounded-full bg-surface-2">
+                      <span class="block h-full rounded-full" [style.width.%]="(row.totalMinor / rowsTotal()) * 100" [style.background]="color(row)"></span>
+                    </span>
+                    <span class="num w-9 text-right text-[0.7rem] text-muted">{{ i18n.percent(row.totalMinor / rowsTotal()) }}</span>
+                    <span class="w-7 text-right text-[0.7rem] text-muted">{{ row.txCount }}×</span>
+                  </span>
+                </span>
+              </button>
+            </li>
+          }
+        </ul>
+        @if (rows().length > shownRows().length || showAll()) {
+          <button type="button" class="btn-ghost mt-1 h-8 self-start px-2 text-xs" [attr.aria-expanded]="showAll()" (click)="showAll.update((v) => !v)">
+            {{ showAll() ? '−' : '+' }} {{ rows().length - listLimit }}
+          </button>
+        }
+      }
+
+
+      @if (txList().length) {
+        <h3 class="mt-5 mb-1.5 text-xs font-semibold tracking-wide text-muted uppercase">{{ t().dashboard.insideTransactions }}</h3>
+        <ul class="-mx-2 flex flex-col">
+          @for (line of shownTx(); track line.id) {
+            <li>
+              <button
+                type="button"
+                class="flex w-full cursor-pointer items-baseline gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-surface-2"
+                [title]="line.item ? t().dashboard.fromReceipt(i18n.date(line.transaction!.date, 'medium')) : ''"
+                (click)="editing.set(line.transaction)"
+              >
+                <span class="num w-14 shrink-0 text-xs text-muted">{{ i18n.date(line.transaction!.date, 'short') }}</span>
+                <span class="flex min-w-0 flex-1 items-center gap-1.5">
+                  @if (line.item) {
+                    <svg lucideIcon="receipt" size="13" class="shrink-0 text-muted"></svg>
+                  }
+                  <span class="truncate text-sm">{{ line.label }}</span>
+                </span>
+                @if (original(line); as charged) {
+                  <span class="num text-xs text-muted">{{ charged }}</span>
+                }
+                <span class="num text-sm">{{ money(line.totalMinor, false) }}</span>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+
+      <a routerLink="/transactions" [queryParams]="listLink()" class="mt-auto inline-flex items-center gap-1 self-start pt-4 text-xs font-medium text-ink-2 hover:text-ink">
+        {{ txList().length > shownTx().length ? t().dashboard.seeAllTransactions(txList().length) : t().common.viewTransactions }}
+        <svg lucideIcon="chevron-right" size="14"></svg>
+      </a>
+    </aside>
+  </div>
+} @else {
+  <p class="grid h-48 place-items-center text-sm text-muted">{{ t().dashboard.emptyMonth }}</p>
+}
+
+@if (editing(); as tx) {
+  <app-transaction-editor [transaction]="tx" (closed)="editing.set(null)" />
+}
