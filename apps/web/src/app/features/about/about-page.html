@@ -1,0 +1,121 @@
+<article class="mx-auto flex max-w-5xl flex-col gap-4">
+  <header class="card relative overflow-hidden px-6 pt-7 pb-8 sm:px-8">
+    <p class="text-xs font-semibold tracking-wide text-muted uppercase">{{ a().eyebrow }}</p>
+    <h1 class="mt-2 max-w-3xl text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl">{{ a().title }}</h1>
+    <p class="mt-4 max-w-2xl text-base leading-relaxed text-ink-2">{{ a().intro }}</p>
+    <p class="mt-3 text-sm font-medium">{{ a().author(project.author) }}</p>
+    <div class="mt-6 flex flex-wrap gap-2">
+      <a class="btn-primary" [href]="project.repoUrl" target="_blank" rel="noopener">
+        <svg lucideIcon="code" size="16"></svg>
+        {{ a().repo }}
+        <svg lucideIcon="external-link" size="13" class="opacity-70"></svg>
+      </a>
+      <a class="btn-outline" [href]="project.profileUrl" target="_blank" rel="noopener">
+        {{ a().profile }}
+        <svg lucideIcon="external-link" size="13" class="opacity-70"></svg>
+      </a>
+    </div>
+    <!-- The category colours, the app's only loud element, as a signature. -->
+    <div class="absolute inset-x-0 bottom-0 flex h-1" aria-hidden="true">
+      @for (color of colors; track $index) {
+        <span class="flex-1" [style.background]="color"></span>
+      }
+    </div>
+  </header>
+
+  <div class="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+    <section class="card p-5 sm:p-6" aria-labelledby="about-story">
+      <h2 id="about-story" class="flex items-center gap-2 text-base font-semibold tracking-tight">
+        <svg lucideIcon="house" size="17"></svg>{{ a().storyTitle }}
+      </h2>
+      @for (p of a().story; track $index) {
+        <p class="mt-3 text-sm leading-relaxed text-ink-2">{{ p }}</p>
+      }
+    </section>
+
+    <section class="card p-5 sm:p-6" aria-labelledby="about-what">
+      <h2 id="about-what" class="text-base font-semibold tracking-tight">{{ a().whatTitle }}</h2>
+      <ul class="mt-4 grid gap-x-5 gap-y-4 sm:grid-cols-2">
+        @for (w of a().what; track w.title) {
+          <li class="flex gap-3">
+            <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-ink-2">
+              <svg [lucideIcon]="w.icon" size="17"></svg>
+            </span>
+            <span>
+              <span class="block text-sm font-semibold">{{ w.title }}</span>
+              <span class="mt-0.5 block text-sm leading-relaxed text-ink-2">{{ w.body }}</span>
+            </span>
+          </li>
+        }
+      </ul>
+    </section>
+  </div>
+
+  @if (inBrowser) {
+    <section class="card p-5 sm:p-6" aria-labelledby="about-online">
+      <h2 id="about-online" class="flex items-center gap-2 text-base font-semibold tracking-tight">
+        <svg lucideIcon="globe" size="17"></svg>{{ a().onlineTitle }}
+      </h2>
+      <p class="mt-1 text-sm text-ink-2">{{ a().onlineIntro }}</p>
+      <ul class="mt-4 grid gap-4 md:grid-cols-3">
+        @for (o of a().online; track o.title) {
+          <li class="rounded-xl border border-line p-4">
+            <span class="flex items-center gap-2 text-sm font-semibold"><svg [lucideIcon]="o.icon" size="16" class="text-ink-2"></svg>{{ o.title }}</span>
+            <span class="mt-1.5 block text-sm leading-relaxed text-ink-2">{{ o.body }}</span>
+          </li>
+        }
+      </ul>
+      <p class="mt-4 flex items-start gap-2 text-sm leading-relaxed text-muted">
+        <svg lucideIcon="calendar" size="15" class="mt-0.5 shrink-0"></svg>{{ a().snapshot(snapshotDay()) }}
+      </p>
+    </section>
+  }
+
+  <section class="card p-5 sm:p-6" aria-labelledby="about-stack">
+    <h2 id="about-stack" class="text-base font-semibold tracking-tight">{{ a().stackTitle }}</h2>
+    <p class="mt-1 text-sm text-ink-2">{{ a().stackIntro }}</p>
+    <div class="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      @for (g of a().stack; track g.group) {
+        <div>
+          <h3 class="flex items-center gap-2 text-sm font-semibold"><svg [lucideIcon]="g.icon" size="15" class="text-ink-2"></svg>{{ g.group }}</h3>
+          <ul class="mt-2.5 flex flex-wrap gap-1.5">
+            @for (item of g.items; track item) {
+              <li class="chip h-auto min-h-6 py-0.5 leading-snug">{{ item }}</li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="card p-5 sm:p-6" aria-labelledby="about-choices">
+    <h2 id="about-choices" class="text-base font-semibold tracking-tight">{{ a().choicesTitle }}</h2>
+    <ul class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      @for (c of a().choices; track c.title) {
+        <li class="rounded-xl border border-line p-4">
+          <span class="flex items-center gap-2 text-sm font-semibold"><svg [lucideIcon]="c.icon" size="16" class="text-ink-2"></svg>{{ c.title }}</span>
+          <span class="mt-1.5 block text-sm leading-relaxed text-ink-2">{{ c.body }}</span>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <div class="grid gap-4 md:grid-cols-2">
+    <section class="card flex flex-col p-5 sm:p-6" aria-labelledby="about-license">
+      <h2 id="about-license" class="flex items-center gap-2 text-base font-semibold tracking-tight">
+        <svg lucideIcon="scale" size="17"></svg>{{ a().licenseTitle }}
+      </h2>
+      <p class="mt-3 mb-4 text-sm leading-relaxed text-ink-2">{{ a().licenseBody }}</p>
+      <a class="btn-outline btn-sm mt-auto self-start" [href]="project.repoUrl + '/blob/main/LICENSE'" target="_blank" rel="noopener">
+        {{ a().licenseLink }}<svg lucideIcon="external-link" size="12" class="opacity-70"></svg>
+      </a>
+    </section>
+    <section class="card flex flex-col p-5 sm:p-6" aria-labelledby="about-outro">
+      <h2 id="about-outro" class="text-base font-semibold tracking-tight">{{ a().outroTitle }}</h2>
+      <p class="mt-3 mb-4 text-sm leading-relaxed text-ink-2">{{ a().outroBody }}</p>
+      <a class="btn-primary btn-sm mt-auto self-start" [href]="project.repoUrl" target="_blank" rel="noopener">
+        <svg lucideIcon="code" size="14"></svg>{{ a().repo }}
+      </a>
+    </section>
+  </div>
+</article>

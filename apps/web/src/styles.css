@@ -1,0 +1,272 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+
+/* Theme: `data-theme` on <html> is set before first paint (index.html) and by the toggle.
+   The chrome stays monochrome; the data is the only thing allowed to be loud. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --surface-2: #f3f2ee;
+  --surface-3: #e9e8e3;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #6f6e69;
+  --line: rgba(11, 11, 11, 0.1);
+  --grid: #e1e0d9;
+  --baseline: #c3c2b7;
+  --good-text: #006300;
+  --bad-text: #b42323;
+
+  /* Categorical slots, fixed per root category (validated light steps). */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #6250d6;
+  --series-8: #e34948;
+  --series-other: #a9a8a1;
+
+  /* Sequential blue ramp (magnitude). */
+  --seq-0: #f0efec;
+  --seq-1: #cde2fb;
+  --seq-2: #9ec5f4;
+  --seq-3: #6da7ec;
+  --seq-4: #3987e5;
+  --seq-5: #256abf;
+  --seq-6: #184f95;
+
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-2: #232321;
+  --surface-3: #2e2e2b;
+  --ink: #f0efec;
+  --ink-2: #c3c2b7;
+  --muted: #9a9993;
+  --line: rgba(255, 255, 255, 0.1);
+  --grid: #2c2c2a;
+  --baseline: #383835;
+  --good-text: #0ca30c;
+  --bad-text: #e66767;
+
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
+  --series-other: #5c5b57;
+
+  --seq-0: #262624;
+  --seq-1: #104281;
+  --seq-2: #184f95;
+  --seq-3: #256abf;
+  --seq-4: #3987e5;
+  --seq-5: #6da7ec;
+  --seq-6: #9ec5f4;
+}
+
+@theme inline {
+  --font-sans: 'Geist Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'Cascadia Code', monospace;
+
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-grid: var(--grid);
+  --color-good: var(--good-text);
+  --color-bad: var(--bad-text);
+  --color-warning: var(--status-warning);
+}
+
+@layer base {
+  html {
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-feature-settings: 'ss01', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    interpolate-size: allow-keywords;
+  }
+
+  body {
+    min-height: 100dvh;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  ::selection {
+    background: color-mix(in oklch, var(--series-1) 30%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility card {
+  @apply rounded-2xl border border-line bg-surface;
+}
+
+@utility card-title {
+  @apply text-sm font-medium text-ink-2;
+}
+
+@utility btn {
+  @apply inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg px-3.5 text-sm font-medium whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+/* Small size for secondary actions inside cards and rows. */
+@utility btn-sm {
+  @apply h-8 gap-1.5 rounded-md px-2.5 text-xs;
+}
+
+/* A disabled primary turns neutral instead of fading: a half-transparent light button on a dark
+   page reads as grey mush, not as "not available yet". */
+@utility btn-primary {
+  @apply btn bg-ink text-page hover:opacity-90 disabled:bg-surface-3 disabled:text-muted disabled:opacity-100 disabled:hover:opacity-100;
+}
+
+@utility btn-ghost {
+  @apply btn text-ink-2 hover:bg-surface-2 hover:text-ink;
+}
+
+@utility btn-outline {
+  @apply btn border border-line bg-surface hover:bg-surface-2;
+}
+
+@utility btn-danger {
+  @apply btn border border-line bg-surface text-bad hover:bg-surface-2;
+}
+
+@utility btn-danger-ghost {
+  @apply btn text-bad hover:bg-surface-2;
+}
+
+@utility icon-btn {
+  @apply inline-flex size-9 cursor-pointer items-center justify-center rounded-lg text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-40;
+}
+
+@utility input {
+  @apply h-9 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink placeholder:text-muted;
+}
+
+@utility label {
+  @apply mb-1.5 block text-xs font-medium text-ink-2;
+}
+
+@utility chip {
+  @apply inline-flex h-6 items-center gap-1.5 rounded-full border border-line bg-surface-2 px-2 text-xs font-medium text-ink-2;
+}
+
+@utility num {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility skeleton {
+  @apply animate-pulse rounded-md bg-surface-2;
+}
+
+@layer components {
+  /* Customizable <select> (Chromium): rich options with icons, native semantics. Other engines
+     render a regular select. */
+  .select {
+    @apply h-9 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink;
+  }
+
+  @supports (appearance: base-select) {
+    .select,
+    .select::picker(select) {
+      appearance: base-select;
+    }
+
+    .select {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .select::picker-icon {
+      color: var(--muted);
+    }
+
+    .select::picker(select) {
+      border: 1px solid var(--line);
+      border-radius: 0.75rem;
+      background: var(--surface);
+      padding: 0.25rem;
+      box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.25);
+      max-height: min(60vh, 28rem);
+    }
+
+    .select option {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-radius: 0.5rem;
+      padding: 0.375rem 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .select option:hover,
+    .select option:focus-visible {
+      background: var(--surface-2);
+    }
+
+    .select option::checkmark {
+      order: 1;
+      margin-left: auto;
+    }
+
+    .select optgroup legend {
+      padding: 0.5rem 0.5rem 0.25rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+  }
+}
+
+/* Route changes cross-fade (Router withViewTransitions). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+}
+
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.35);
+  backdrop-filter: blur(2px);
+}

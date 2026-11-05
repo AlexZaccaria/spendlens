@@ -1,0 +1,24 @@
+<h2 class="mb-3 text-base font-semibold tracking-tight">{{ t().dashboard.largest }}</h2>
+<ol class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+  @for (tx of items(); track tx.id; let i = $index) {
+    <li class="flex flex-col gap-3 rounded-xl border border-line p-3.5">
+      <div class="flex items-center justify-between">
+        <app-category-icon [categoryId]="tx.categoryId" [size]="28" />
+        <span class="text-xs font-medium text-muted">#{{ i + 1 }}</span>
+      </div>
+      <div class="min-w-0">
+        @if (tx.baseAmountMinor !== null) {
+          <p class="num text-lg font-semibold">{{ i18n.money(-tx.baseAmountMinor, state.baseCurrency()) }}</p>
+          @if (original(tx); as charged) {
+            <p class="num text-xs text-ink-2">{{ charged }}</p>
+          }
+        } @else {
+          <p class="num text-lg font-semibold">{{ i18n.money(-tx.amountMinor, tx.currency) }}</p>
+          <p class="text-xs text-muted">{{ t().transactions.noRate }}</p>
+        }
+        <p class="truncate text-sm" [title]="i18n.text(tx.title)">{{ i18n.text(tx.title) }}</p>
+        <p class="text-xs text-muted">{{ i18n.date(tx.date, 'medium') }} · {{ i18n.category(tx.categoryId) }}</p>
+      </div>
+    </li>
+  }
+</ol>

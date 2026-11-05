@@ -1,0 +1,43 @@
+<div class="mb-3">
+  <h2 class="flex items-center gap-2 text-base font-semibold tracking-tight">
+    <svg lucideIcon="receipt" size="16"></svg>
+    {{ t().dashboard.whatYouBuy }}
+  </h2>
+  <p class="text-xs text-muted">{{ t().dashboard.whatYouBuyHint }}</p>
+</div>
+<ol class="flex flex-col gap-1">
+  @for (p of rows(); track p.key) {
+    <li>
+      <a
+        routerLink="/transactions"
+        [queryParams]="{ q: p.label, from: summary().range.from, to: summary().range.to }"
+        class="-mx-2 flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-surface-2"
+      >
+        <app-category-icon [categoryId]="p.categoryId" [size]="28" />
+        <span class="min-w-0 flex-1">
+          <span class="flex items-baseline justify-between gap-2">
+            <span class="truncate text-sm font-medium">{{ p.label }}</span>
+            <span class="flex items-baseline gap-2">
+              @if (charged(p); as c) {
+                <span class="num text-xs text-muted">{{ c }}</span>
+              }
+              <span class="num text-sm font-semibold">{{ i18n.money(p.totalMinor, summary().baseCurrency, { whole: p.totalMinor >= 10000 }) }}</span>
+            </span>
+          </span>
+          <span class="mt-1 flex items-center gap-2">
+            <span class="h-1 flex-1 overflow-hidden rounded-full bg-surface-2">
+              <span class="block h-full rounded-full" [style.width.%]="p.width" [style.background]="p.color"></span>
+            </span>
+            <span class="w-20 text-right text-[0.7rem] text-muted">{{ t().dashboard.purchases(p.purchases) }}</span>
+            <app-delta class="w-12 justify-end" [current]="p.totalMinor" [reference]="p.previousMinor || null" />
+          </span>
+        </span>
+      </a>
+    </li>
+  } @empty {
+    <li class="flex flex-1 items-center gap-3 rounded-xl border border-dashed border-line p-4 text-sm text-ink-2">
+      <svg lucideIcon="receipt" size="20" class="shrink-0 text-muted"></svg>
+      {{ t().dashboard.noProducts }}
+    </li>
+  }
+</ol>

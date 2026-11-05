@@ -40,7 +40,9 @@ runs inside the browser, on SQLite compiled to WebAssembly ([Static demo](#stati
   more charges at a steady cadence and amount. A cost can also be declared by hand (amount,
   category, cadence, next charge) and counts from day one, before any payment; a detected one can
   be made your own with your values, or ruled out as "not a fixed cost" (undoable, and listed in
-  Settings → Rules). Declared costs flag their payments as recurring once they arrive.
+  Settings → Rules). Declared costs flag their payments as recurring once they arrive. A payment
+  entered by hand can be declared on the spot ("Fixed cost: repeats every month"), and the next
+  charge never falls before the first one given nor on a day already paid.
 - **Multi-vendor AI seam** (same design as Solexma's): Anthropic with an API key *or* the Claude
   Code `credentials.json` (re-read on every call, refreshed when about to expire), OpenAI
   (Responses API) and any OpenAI-compatible server (Ollama, LM Studio, vLLM, OpenRouter, gateways).
@@ -77,7 +79,9 @@ runs inside the browser, on SQLite compiled to WebAssembly ([Static demo](#stati
 - **Every currency, shown both ways.** A purchase keeps the amount it was charged in and gets its
   value in your currency at the ECB rate of its day; receipt lines follow their receipt. Wherever a
   single purchase or line appears — the list, the editor, the explorer, the largest expenses, a
-  fixed cost billed in dollars — both amounts are shown; totals and charts are in your currency.
+  fixed cost billed in dollars — both amounts are shown, and so does every total whose purchases
+  were all charged in one foreign currency: the month, income and savings, a merchant, a product,
+  an explorer node, a filtered list. Totals mixing currencies, and the charts, are in yours.
   Pick that currency in Settings → Data (any of the 30 with an ECB rate) and the whole history is
   converted again, day by day. The model reads a receipt's currency from its symbol and the
   shop's country ("$" in Canada is CAD), and amounts left without a rate while offline are
@@ -120,7 +124,8 @@ POST /api/imports  (multipart: files[] + pasted text, answered as Server-Sent Ev
 
 ## Getting started
 
-Requirements: **Node.js 26** (Angular 22 needs ≥ 22.22.3 / 24.15 / 26).
+Requirements: **Node.js 26** (Angular 22 needs ≥ 22.22.3 / 24.15 / 26) and **npm**: the
+workspaces and the lockfile are npm's, and pnpm refuses the project (`packageManager`).
 
 ```sh
 npm install

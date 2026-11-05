@@ -1,0 +1,40 @@
+<app-auth-layout>
+  <h1 class="text-2xl font-semibold tracking-tight">{{ t().auth.registerTitle }}</h1>
+  <p class="mt-1 text-sm text-ink-2">{{ t().auth.registerSubtitle }}</p>
+
+  <div class="mt-6 flex gap-3 rounded-xl border border-line bg-surface-2 p-4" role="status">
+    <svg lucideIcon="lock" size="18" class="mt-0.5 shrink-0"></svg>
+    <div>
+      <p class="text-sm font-semibold">{{ t().auth.registerClosed }}</p>
+      <p class="mt-1 text-sm text-ink-2">{{ t().auth.registerClosedBody }}</p>
+    </div>
+  </div>
+
+  <form class="mt-6 flex flex-col gap-4" aria-disabled="true" (submit)="$event.preventDefault()">
+    <fieldset disabled class="flex flex-col gap-4 opacity-60">
+      <div>
+        <label for="name" class="label">{{ t().auth.name }}</label>
+        <input id="name" class="input h-10" autocomplete="name" />
+      </div>
+      <div>
+        <label for="email" class="label">{{ t().auth.email }}</label>
+        <input id="email" type="email" class="input h-10" autocomplete="email" />
+      </div>
+      <div>
+        <label for="password" class="label">{{ t().auth.password }}</label>
+        <input id="password" type="password" class="input h-10" autocomplete="new-password" />
+      </div>
+      <button type="submit" class="btn-outline h-10 w-full">{{ t().auth.createAccount }}</button>
+    </fieldset>
+  </form>
+
+  <div class="my-7 flex items-center gap-3 text-xs text-muted" aria-hidden="true">
+    <span class="h-px flex-1 bg-line"></span>{{ t().auth.or }}<span class="h-px flex-1 bg-line"></span>
+  </div>
+  <app-demo-cta />
+
+  <p class="mt-8 text-center text-sm text-muted">
+    {{ t().auth.haveAccount }}
+    <a routerLink="/login" class="font-medium text-ink underline-offset-4 hover:underline">{{ t().auth.signIn }}</a>
+  </p>
+</app-auth-layout>

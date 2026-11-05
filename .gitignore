@@ -1,0 +1,23 @@
+# Dependencies and build output
+node_modules/
+dist/
+out-tsc/
+.angular/
+# The API built for the browser (npm run build:browser), served by the static demo build
+apps/web/.local-api/
+
+# Local data: the SQLite database holds personal transactions
+apps/api/data/
+*.db
+*.db-shm
+*.db-wal
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Logs and OS noise
+*.log
+.DS_Store
+Thumbs.db

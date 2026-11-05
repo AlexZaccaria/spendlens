@@ -1,0 +1,44 @@
+<div class="mb-3 flex items-start justify-between gap-3">
+  <div>
+    <h2 class="text-base font-semibold tracking-tight">{{ t().dashboard.trend }}</h2>
+    <p class="text-xs text-muted">{{ t().dashboard.trendHint }}</p>
+  </div>
+  <div class="flex rounded-lg border border-line p-0.5 text-xs font-medium" role="radiogroup" [attr.aria-label]="t().dashboard.trend">
+    <button type="button" role="radio" [attr.aria-checked]="view() === 'chart'" (click)="view.set('chart')" class="cursor-pointer rounded-md px-2 py-1 text-muted aria-checked:bg-surface-2 aria-checked:text-ink">
+      {{ t().common.chart }}
+    </button>
+    <button type="button" role="radio" [attr.aria-checked]="view() === 'table'" (click)="view.set('table')" class="cursor-pointer rounded-md px-2 py-1 text-muted aria-checked:bg-surface-2 aria-checked:text-ink">
+      {{ t().common.table }}
+    </button>
+  </div>
+</div>
+@if (view() === 'chart') {
+  <app-chart class="h-80" [options]="options()" [label]="ariaLabel()" (pick)="onPick($event)" />
+} @else {
+  <div class="max-h-80 overflow-auto">
+    <table class="w-full text-xs">
+      <thead class="sticky top-0 bg-surface text-muted">
+        <tr>
+          <th scope="col" class="py-1.5 pr-3 text-left font-medium">{{ t().transactions.month }}</th>
+          @for (s of series(); track s.id) {
+            <th scope="col" class="px-2 py-1.5 text-right font-medium">{{ s.name }}</th>
+          }
+          <th scope="col" class="py-1.5 pl-2 text-right font-semibold text-ink">{{ t().dashboard.expenses }}</th>
+          <th scope="col" class="py-1.5 pl-2 text-right font-medium">{{ t().dashboard.income }}</th>
+        </tr>
+      </thead>
+      <tbody class="num">
+        @for (m of trend().months; track m; let i = $index) {
+          <tr class="border-t border-line">
+            <th scope="row" class="py-1.5 pr-3 text-left font-medium capitalize">{{ i18n.month(m, 'compact') }}</th>
+            @for (s of series(); track s.id) {
+              <td class="px-2 py-1.5 text-right text-ink-2">{{ money(s.values[i]!) }}</td>
+            }
+            <td class="py-1.5 pl-2 text-right font-semibold">{{ money(trend().expense[i]!) }}</td>
+            <td class="py-1.5 pl-2 text-right text-ink-2">{{ money(trend().income[i]!) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

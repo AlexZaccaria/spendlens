@@ -1,0 +1,57 @@
+<div class="mb-3 flex items-start justify-between gap-3">
+  <div>
+    <h2 class="text-base font-semibold tracking-tight">{{ t().dashboard.fixedCosts }}</h2>
+    <p class="text-xs text-muted">{{ t().dashboard.fixedCostsHint }}</p>
+  </div>
+  <div class="flex shrink-0 items-start gap-2">
+    @if (monthly() > 0) {
+      <p class="num text-right text-lg font-semibold">
+        {{ money(monthly()) }}<span class="text-xs font-normal text-muted">{{ t().dashboard.perMonth }}</span>
+      </p>
+    }
+    <button type="button" class="icon-btn size-8 border border-line" [title]="t().dashboard.addFixed" [attr.aria-label]="t().dashboard.addFixed" (click)="editing.set(null)">
+      <svg lucideIcon="plus" size="16"></svg>
+    </button>
+  </div>
+</div>
+<ul class="-mx-2 flex flex-col">
+  @for (item of shown(); track item.id) {
+    <li>
+      <button
+        type="button"
+        class="flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-surface-2"
+        [class.opacity-50]="!item.active"
+        (click)="editing.set(item)"
+      >
+        <app-category-icon [categoryId]="item.categoryId" [size]="28" />
+        <span class="min-w-0 flex-1">
+          <span class="block truncate text-sm font-medium">{{ item.merchant }}</span>
+          <span class="block truncate text-xs text-muted">
+            {{ t().dashboard.fixed.cadences[item.cadenceDays] }} ·
+            {{ item.active ? t().dashboard.nextCharge(i18n.date(item.nextDate, 'short')) : t().dashboard.inactive }}
+            @if (item.source === 'manual') {
+              · {{ t().dashboard.declared }}
+            }
+          </span>
+        </span>
+        <span class="num text-right text-sm font-medium">
+          {{ money(item.averageMinor, false) }}
+          @if (item.original; as o) {
+            <span class="block text-[0.7rem] font-normal text-muted">{{ i18n.money(o.amountMinor, o.currency) }}</span>
+          }
+        </span>
+      </button>
+    </li>
+  } @empty {
+    <li class="py-8 text-center text-sm text-muted">—</li>
+  }
+</ul>
+@if (items().length > visible) {
+  <button type="button" class="btn-ghost btn-sm mt-2 self-start" (click)="expanded.update((v) => !v)">
+    {{ expanded() ? '−' : '+' }} {{ items().length - visible }}
+  </button>
+}
+
+@if (editing() !== undefined) {
+  <app-recurring-editor [item]="editing() ?? null" [merchants]="merchants.value() ?? []" (closed)="editing.set(undefined)" />
+}

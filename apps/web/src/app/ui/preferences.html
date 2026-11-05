@@ -1,0 +1,31 @@
+<div role="radiogroup" [attr.aria-label]="t().theme.label" class="flex h-8 rounded-lg bg-surface-2 p-0.5">
+  @for (opt of themes; track opt.value) {
+    <button
+      type="button"
+      role="radio"
+      [attr.aria-checked]="theme.resolved() === opt.value"
+      [attr.aria-label]="t().theme[opt.value]"
+      [title]="t().theme[opt.value]"
+      (click)="theme.set(opt.value)"
+      [class]="segment"
+    >
+      <svg [lucideIcon]="opt.icon" size="14"></svg>
+    </button>
+  }
+</div>
+<div role="radiogroup" [attr.aria-label]="t().lang.label" class="flex h-8 rounded-lg bg-surface-2 p-0.5">
+  @for (lang of langs; track lang) {
+    <button
+      type="button"
+      role="radio"
+      [attr.aria-checked]="i18n.lang() === lang"
+      [attr.aria-label]="t().lang[lang]"
+      [attr.lang]="lang"
+      [title]="t().lang[lang]"
+      (click)="i18n.lang.set(lang)"
+      [class]="segment + ' group'"
+    >
+      <app-flag [lang]="lang" class="transition-opacity group-hover:opacity-100" [class.opacity-45]="i18n.lang() !== lang" />
+    </button>
+  }
+</div>

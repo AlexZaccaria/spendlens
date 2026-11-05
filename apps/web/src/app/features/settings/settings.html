@@ -1,0 +1,396 @@
+<header class="mb-4">
+  <h1 class="text-2xl font-semibold tracking-tight">{{ t().settings.title }}</h1>
+</header>
+
+<!-- No gap between panels: the hidden ones stay in the page at zero height. -->
+<div ngTabs>
+  <div ngTabList [(selectedTab)]="tab" class="mb-4 flex w-fit gap-1 overflow-x-auto rounded-xl border border-line bg-surface p-1">
+    @for (key of ['ai', 'rules', 'data', 'about']; track key) {
+      <button
+        ngTab
+        [value]="key"
+        class="h-9 cursor-pointer rounded-lg px-3.5 text-sm font-medium whitespace-nowrap text-ink-2 transition-colors hover:text-ink aria-selected:bg-ink aria-selected:text-page"
+      >
+        {{ $any(t().settings.tabs)[key] }}
+      </button>
+    }
+  </div>
+
+  <!-- AI provider -->
+  <div ngTabPanel value="ai">
+    <ng-template ngTabContent>
+      @if (auth.isDemo()) {
+        <section class="card flex max-w-2xl gap-4 p-5" role="status">
+          <svg lucideIcon="lock" size="20" class="mt-0.5 shrink-0"></svg>
+          <div>
+            <h2 class="text-base font-semibold">{{ t().auth.demoAiOff }}</h2>
+            <p class="mt-1 text-sm text-ink-2">{{ t().auth.demoAiOffBody }}</p>
+          </div>
+        </section>
+      } @else {
+        <div class="grid gap-5 xl:grid-cols-3">
+          <section class="card flex flex-col gap-6 p-5 xl:col-span-2">
+            <fieldset>
+              <legend class="label">{{ t().settings.provider }}</legend>
+              <div class="grid gap-2 sm:grid-cols-3" role="radiogroup" [attr.aria-label]="t().settings.provider">
+                @for (p of providers; track p) {
+                  <button
+                    type="button"
+                    role="radio"
+                    [attr.aria-checked]="provider() === p"
+                    (click)="setProvider(p)"
+                    class="flex cursor-pointer flex-col items-start gap-1 rounded-xl border border-line p-3.5 text-left transition-colors hover:bg-surface-2 aria-checked:border-ink aria-checked:ring-1 aria-checked:ring-ink"
+                  >
+                    <span class="flex w-full items-center justify-between text-sm font-semibold">
+                      {{ t().settings.providers[p]!.name }}
+                      @if (provider() === p) {
+                        <svg lucideIcon="circle-check" size="16"></svg>
+                      }
+                    </span>
+                    <span class="text-xs text-muted">{{ t().settings.providers[p]!.hint }}</span>
+                  </button>
+                }
+              </div>
+            </fieldset>
+
+            @if (provider() === 'anthropic') {
+              <fieldset>
+                <legend class="label">{{ t().settings.auth }}</legend>
+                <div role="radiogroup" [attr.aria-label]="t().settings.auth" class="flex w-fit rounded-lg border border-line p-0.5 text-sm">
+                  <button type="button" role="radio" [attr.aria-checked]="!oauth()" (click)="setAuth('key')" class="h-8 cursor-pointer rounded-md px-3 font-medium text-muted aria-checked:bg-surface-2 aria-checked:text-ink">
+                    {{ t().settings.authKey }}
+                  </button>
+                  <button type="button" role="radio" [attr.aria-checked]="oauth()" (click)="setAuth('oauth')" class="h-8 cursor-pointer rounded-md px-3 font-medium text-muted aria-checked:bg-surface-2 aria-checked:text-ink">
+                    {{ t().settings.authOauth }}
+                  </button>
+                </div>
+              </fieldset>
+            }
+
+            @if (oauth()) {
+              <div class="flex flex-col gap-3">
+                <div>
+                  <p class="label">{{ t().settings.credentials }}</p>
+                  <p class="text-xs text-muted">{{ t().settings.credentialsHint }}</p>
+                </div>
+                <p class="text-xs font-semibold tracking-wide text-muted uppercase">{{ t().settings.detected }}</p>
+                <ul class="flex flex-col gap-2">
+                  @for (c of listedCandidates(); track c.path) {
+                    @let inUse = model().oauthCredentialPath === c.path;
+                    <li class="flex flex-wrap items-center gap-3 rounded-xl border border-line py-2.5 pr-2.5 pl-3.5" [class.border-ink]="inUse">
+                      <svg lucideIcon="key-round" size="18" class="shrink-0 text-muted"></svg>
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-medium">{{ c.account }}</p>
+                        <p class="truncate font-mono text-[0.7rem] text-muted" [title]="c.path">{{ c.path }}</p>
+                      </div>
+                      <span class="text-xs" [class.text-bad]="isExpired(c)" [class.text-muted]="!isExpired(c)">{{ expiry(c) }}</span>
+                      <div class="flex items-center gap-1">
+                        @if (inUse) {
+                          <span class="chip"><svg lucideIcon="check" size="12"></svg>{{ t().settings.inUse }}</span>
+                        } @else {
+                          <button type="button" class="btn-outline btn-sm" (click)="useCandidate(c.path)">{{ t().settings.useThis }}</button>
+                          <button
+                            type="button"
+                            class="icon-btn size-8"
+                            [title]="t().settings.removeFromListHint"
+                            [attr.aria-label]="t().settings.removeFromList + ' · ' + c.account"
+                            (click)="setHidden(c, true)"
+                          >
+                            <svg lucideIcon="x" size="15"></svg>
+                          </button>
+                        }
+                      </div>
+                    </li>
+                  } @empty {
+                    <li class="text-sm text-muted">{{ t().settings.noneDetected }}</li>
+                  }
+                </ul>
+                @if (hiddenCandidates().length) {
+                  <div>
+                    <button type="button" class="btn-ghost btn-sm -ml-2.5 text-muted" [attr.aria-expanded]="showHidden()" aria-controls="hidden-credentials" (click)="showHidden.update((v) => !v)">
+                      <svg lucideIcon="chevron-down" size="14" class="transition-transform" [class.-rotate-90]="!showHidden()"></svg>
+                      {{ t().settings.hiddenFiles(hiddenCandidates().length) }}
+                    </button>
+                    @if (showHidden()) {
+                      <ul id="hidden-credentials" class="mt-1 flex flex-col gap-2">
+                        @for (c of hiddenCandidates(); track c.path) {
+                          <li class="flex items-center gap-3 rounded-xl border border-dashed border-line py-2 pr-2.5 pl-3.5 text-muted">
+                            <svg lucideIcon="key-round" size="16" class="shrink-0"></svg>
+                            <div class="min-w-0 flex-1">
+                              <p class="truncate text-sm">{{ c.account }}</p>
+                              <p class="truncate font-mono text-[0.7rem]" [title]="c.path">{{ c.path }}</p>
+                            </div>
+                            <button type="button" class="btn-ghost btn-sm" [attr.aria-label]="t().settings.restore + ' · ' + c.account" (click)="setHidden(c, false)">
+                              <svg lucideIcon="undo-2" size="13"></svg>{{ t().settings.restore }}
+                            </button>
+                          </li>
+                        }
+                      </ul>
+                    }
+                  </div>
+                }
+                <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
+                  <div>
+                    <label for="cred-path" class="label">{{ t().settings.customPath }}</label>
+                    <input id="cred-path" class="input font-mono text-xs" [formField]="aiForm.oauthCredentialPath" (blur)="commit('oauthCredentialPath')" (keydown.enter)="commit('oauthCredentialPath')" placeholder="C:\Users\…\.claude\.credentials.json" />
+                  </div>
+                  <label class="btn-outline cursor-pointer self-end">
+                    <svg lucideIcon="upload" size="15"></svg>
+                    {{ t().settings.upload }}
+                    <input type="file" accept="application/json,.json" class="sr-only" (change)="uploadCredentials($event)" />
+                  </label>
+                </div>
+                @if (view()?.oauthCredentialImported || view()?.oauthCredentialPath) {
+                  <div class="flex items-center gap-2 text-sm">
+                    <span class="chip">{{ view()?.oauthAccount || t().settings.imported }}</span>
+                    <button type="button" class="btn-danger-ghost btn-sm" (click)="disconnect()">{{ t().settings.removeCredentials }}</button>
+                  </div>
+                }
+              </div>
+            } @else {
+              @if (provider() === 'openai-compatible') {
+                <div>
+                  <label for="base-url" class="label">{{ t().settings.baseUrl }}</label>
+                  <input id="base-url" class="input font-mono text-xs" [formField]="aiForm.baseUrl" (blur)="commit('baseUrl')" (keydown.enter)="commit('baseUrl')" placeholder="http://localhost:11434/v1" aria-describedby="base-url-hint" />
+                  <p id="base-url-hint" class="mt-1 text-xs text-muted">{{ t().settings.baseUrlHint }}</p>
+                </div>
+              }
+              <div>
+                <label for="api-key" class="label">
+                  {{ t().settings.apiKey }}
+                  @if (provider() === 'openai-compatible') {
+                    <span class="font-normal text-muted">· {{ t().common.optional }}</span>
+                  }
+                </label>
+                <div class="flex gap-2">
+                  <input
+                    id="api-key"
+                    type="password"
+                    autocomplete="off"
+                    class="input font-mono"
+                    [formField]="aiForm.apiKey"
+                    (blur)="commitKey()"
+                    (keydown.enter)="commitKey()"
+                    [placeholder]="view()?.apiKeySet && view()?.provider === provider() ? t().settings.apiKeyPlaceholderSet : provider() === 'anthropic' ? 'sk-ant-…' : 'sk-…'"
+                  />
+                  @if (view()?.apiKeySource === 'settings' && view()?.provider === provider()) {
+                    <button type="button" class="btn-danger-ghost" (click)="removeKey()">{{ t().settings.apiKeyRemove }}</button>
+                  }
+                </div>
+                @if (view()?.apiKeySource === 'env' && view()?.provider === provider()) {
+                  <p class="mt-1 text-xs text-muted">{{ t().settings.apiKeyFromEnv(envNames[provider()]) }}</p>
+                }
+              </div>
+            }
+
+            <div class="grid gap-4 sm:grid-cols-[1fr_12rem]">
+              <div>
+                <label for="model" class="label">{{ t().settings.model }}</label>
+                @if (modelChoices().length) {
+                  <!-- Options are bound with [selected]: a value binding on the select runs before they exist. -->
+                  <select id="model" class="select" (change)="setModel($any($event.target).value)">
+                    @if (!selectedModel()) {
+                      <option [value]="model().model" selected>{{ model().model || '—' }}</option>
+                    }
+                    @for (m of modelChoices(); track m.id) {
+                      <option [value]="m.id" [selected]="m.id === model().model">{{ m.label }}</option>
+                    }
+                  </select>
+                } @else {
+                  <!-- No list yet (new credential, or the provider cannot list): type the id, or load the list. -->
+                  <div class="flex gap-2">
+                    <input
+                      id="model"
+                      class="input font-mono text-xs"
+                      [formField]="aiForm.model"
+                      (blur)="commit('model')"
+                      (keydown.enter)="commit('model')"
+                      [placeholder]="modelsState() === 'loading' ? t().settings.modelsLoading : 'claude-opus-5-5'"
+                      aria-describedby="model-hint"
+                    />
+                    <button
+                      type="button"
+                      class="icon-btn shrink-0 border border-line"
+                      [title]="t().settings.modelsLoad"
+                      [attr.aria-label]="t().settings.modelsLoad"
+                      [disabled]="modelsState() === 'loading'"
+                      (click)="refreshModels()"
+                    >
+                      <svg lucideIcon="refresh-cw" size="15" [class.animate-spin]="modelsState() === 'loading'"></svg>
+                    </button>
+                  </div>
+                  @if (modelsState() === 'error') {
+                    <p id="model-hint" class="mt-1 text-xs text-bad">{{ t().settings.modelsError }}</p>
+                  }
+                }
+              </div>
+              @if (provider() !== 'openai-compatible') {
+                <div>
+                  <label for="effort" class="label">{{ t().settings.effort }}</label>
+                  <select id="effort" class="select" [disabled]="effortOptions().length === 0" (change)="setEffort($any($event.target).value)" aria-describedby="effort-hint">
+                    <option value="" [selected]="model().effort === ''">—</option>
+                    @for (e of effortOptions(); track e) {
+                      <option [value]="e" [selected]="e === model().effort">{{ t().settings.efforts[e] }}</option>
+                    }
+                  </select>
+                  <p id="effort-hint" class="mt-1 text-xs text-muted">
+                    {{ effortOptions().length === 0 ? t().settings.effortUnsupported : t().settings.effortHint }}
+                  </p>
+                </div>
+              }
+            </div>
+          </section>
+
+          <!-- The same check as the sidebar dot: the provider answered with the saved settings, or why not. -->
+          <aside class="card flex h-fit flex-col gap-3 p-5" aria-live="polite">
+            <h2 class="flex items-center gap-2 text-sm font-semibold"><svg lucideIcon="bot" size="16"></svg>{{ t().ai.configure }}</h2>
+            @if (view(); as v) {
+              @let health = state.aiHealth.value();
+              @if (!v.ready) {
+                <p class="flex items-center gap-2 text-sm">
+                  <span class="size-2 rounded-full bg-warning"></span>
+                  {{ t().ai.notReady }}
+                </p>
+                <ul class="list-disc pl-5 text-sm text-ink-2">
+                  @for (m of v.missing; track m) {
+                    <li>{{ t().settings.missing[m] ?? m }}</li>
+                  }
+                </ul>
+              } @else if (health?.status === 'error') {
+                <p class="flex items-center gap-2 text-sm">
+                  <span class="size-2 rounded-full" style="background: var(--status-critical)"></span>
+                  {{ t().ai.unreachable }}
+                </p>
+                <p class="text-xs break-words text-bad">{{ health?.message }}</p>
+              } @else if (health?.status === 'ok') {
+                <p class="flex items-center gap-2 text-sm">
+                  <span class="size-2 rounded-full" style="background: var(--status-good)"></span>
+                  {{ t().ai.ready(v.model) }}
+                </p>
+              } @else {
+                <p class="flex items-center gap-2 text-sm text-muted">
+                  <span class="size-2 animate-pulse rounded-full bg-muted"></span>
+                  {{ t().ai.checking }}
+                </p>
+              }
+            }
+            <p class="text-xs leading-relaxed text-muted">{{ t().settings.aboutBody }}</p>
+          </aside>
+        </div>
+      }
+    </ng-template>
+  </div>
+
+  <!-- Learned rules -->
+  <div ngTabPanel value="rules">
+    <ng-template ngTabContent>
+      <section class="card max-w-3xl p-5">
+        <p class="mb-4 text-sm text-ink-2">{{ t().settings.rulesIntro }}</p>
+        <ul class="divide-y divide-line">
+          @for (r of rules.value() ?? []; track r.id) {
+            <li class="flex items-center gap-3 py-2.5">
+              <span class="min-w-0 flex-1 truncate font-mono text-sm">{{ r.pattern }}</span>
+              <svg lucideIcon="chevron-right" size="14" class="text-muted"></svg>
+              <span class="flex w-56 items-center gap-2 text-sm">
+                <app-category-icon [categoryId]="r.categoryId" [size]="24" />
+                <span class="truncate">{{ i18n.category(r.categoryId) }}</span>
+              </span>
+              <span class="hidden w-28 text-right text-xs text-muted sm:block">{{ t().settings.ruleHits(r.hits) }}</span>
+              <button type="button" class="icon-btn size-8" [attr.aria-label]="t().common.delete + ' ' + r.pattern" (click)="deleteRule(r)">
+                <svg lucideIcon="trash" size="15"></svg>
+              </button>
+            </li>
+          } @empty {
+            <li class="py-8 text-center text-sm text-muted">{{ t().settings.rulesEmpty }}</li>
+          }
+        </ul>
+      </section>
+
+      <section class="card mt-4 max-w-3xl p-5" aria-labelledby="excluded-title">
+        <h2 id="excluded-title" class="text-base font-semibold tracking-tight">{{ t().settings.excludedTitle }}</h2>
+        <p class="mt-1 mb-4 text-sm text-ink-2">{{ t().settings.excludedIntro }}</p>
+        <ul class="divide-y divide-line">
+          @for (e of excluded.value() ?? []; track e.id) {
+            <li class="flex items-center gap-3 py-2.5">
+              <span class="min-w-0 flex-1 truncate text-sm font-medium">{{ e.merchant }}</span>
+              <button type="button" class="btn-ghost btn-sm" [attr.aria-label]="t().settings.restore + ' · ' + e.merchant" (click)="restoreExcluded(e)">
+                <svg lucideIcon="undo-2" size="13"></svg>{{ t().settings.restore }}
+              </button>
+            </li>
+          } @empty {
+            <li class="py-6 text-center text-sm text-muted">{{ t().settings.excludedEmpty }}</li>
+          }
+        </ul>
+      </section>
+    </ng-template>
+  </div>
+
+  <!-- Data -->
+  <div ngTabPanel value="data">
+    <ng-template ngTabContent>
+      <div class="grid max-w-4xl gap-5 md:grid-cols-2">
+        <section class="card flex flex-col gap-3 p-5 md:col-span-2" aria-labelledby="currency-title">
+          <h2 id="currency-title" class="flex items-center gap-2 text-base font-semibold"><svg lucideIcon="banknote" size="16"></svg>{{ t().settings.currencyTitle }}</h2>
+          <p class="max-w-2xl text-sm text-ink-2">{{ t().settings.currencyBody }}</p>
+          <div class="flex flex-wrap items-center gap-3 pt-1">
+            <label class="w-72">
+              <span class="sr-only">{{ t().settings.baseCurrency }}</span>
+              <select class="select" [disabled]="changingCurrency()" (change)="setBaseCurrency($any($event.target).value, $any($event.target))">
+                @for (c of currencies; track c) {
+                  <option [value]="c" [selected]="c === state.baseCurrency()">{{ c }} · {{ currencyName(c) }}</option>
+                }
+              </select>
+            </label>
+            @if (changingCurrency()) {
+              <span class="flex items-center gap-2 text-sm text-ink-2" role="status">
+                <svg lucideIcon="loader-circle" size="15" class="animate-spin"></svg>{{ t().settings.currencyChanging }}
+              </span>
+            }
+          </div>
+        </section>
+        <section class="card flex flex-col gap-3 p-5">
+          <h2 class="flex items-center gap-2 text-base font-semibold"><svg lucideIcon="sparkles" size="16"></svg>{{ t().settings.demo }}</h2>
+          <p class="text-sm text-ink-2">{{ t().settings.demoBody }}</p>
+          <div class="mt-auto flex flex-wrap gap-2 pt-2">
+            <button type="button" class="btn-primary" [disabled]="busy() !== null" (click)="demo('demo')">
+              <svg [lucideIcon]="busy() === 'demo' ? 'loader-circle' : 'database'" size="15" [class.animate-spin]="busy() === 'demo'"></svg>
+              {{ t().settings.demoLoad }}
+            </button>
+            <button type="button" class="btn-outline" [disabled]="busy() !== null" (click)="demo('remove')">{{ t().settings.demoRemove }}</button>
+          </div>
+        </section>
+        <section class="card flex flex-col gap-3 p-5">
+          <h2 class="flex items-center gap-2 text-base font-semibold"><svg lucideIcon="trash" size="16"></svg>{{ t().settings.reset }}</h2>
+          <p class="text-sm text-ink-2">{{ t().settings.resetBody }}</p>
+          <div class="mt-auto flex flex-wrap items-center gap-2 pt-2">
+            @if (confirmReset()) {
+              <span class="text-sm text-ink-2">{{ t().settings.resetConfirm }}</span>
+              <button type="button" class="btn-danger" [disabled]="busy() !== null" (click)="demo('reset')">{{ t().common.confirm }}</button>
+              <button type="button" class="btn-ghost" (click)="confirmReset.set(false)">{{ t().common.cancel }}</button>
+            } @else {
+              <button type="button" class="btn-danger" (click)="confirmReset.set(true)">{{ t().settings.reset }}</button>
+            }
+          </div>
+        </section>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- About -->
+  <div ngTabPanel value="about">
+    <ng-template ngTabContent>
+      <section class="card max-w-3xl p-6">
+        <p class="text-sm leading-relaxed text-ink-2">{{ t().settings.aboutBody }}</p>
+        <h2 class="mt-6 mb-3 text-sm font-semibold">{{ t().settings.stack }}</h2>
+        <ul class="flex flex-wrap gap-2">
+          @for (s of ['Angular 22 · zoneless · signals', 'Signal Forms', 'Angular Aria', 'Tailwind CSS 4', 'ECharts 6', 'Node.js 26', 'node:sqlite + FTS5', 'Hono', 'Zod 4', 'Claude · OpenAI · OpenAI-compatible', 'TypeScript 6']; track s) {
+            <li class="chip">{{ s }}</li>
+          }
+        </ul>
+        @if (state.meta.value(); as m) {
+          <p class="mt-6 text-xs text-muted">v{{ m.version }} · {{ t().dashboard.transactionsCount(m.txCount) }}</p>
+        }
+      </section>
+    </ng-template>
+  </div>
+</div>
