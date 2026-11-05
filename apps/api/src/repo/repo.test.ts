@@ -130,6 +130,20 @@ describe('analytics', () => {
     assert.equal(summary(db, november, 'PHP', '2026-11-05').totals.charged.income, null, 'nothing to add in the base currency');
   });
 
+  it('lists a payment typed in without a merchant among the merchants, by what was typed', () => {
+    const db = openDatabase(':memory:');
+    insertTransactions(db, [
+      tx({ rawDescription: 'Aircon cleaning', merchant: null, categoryId: 'housing.maintenance', amountMinor: -6000, baseAmountMinor: -6000, source: 'manual' }),
+      tx({ rawDescription: 'PRELIEVO BANCOMAT ATM 04824 MILANO', merchant: null, categoryId: 'other.cash', amountMinor: -10000, baseAmountMinor: -10000, source: 'import' }),
+    ]);
+    const { merchants } = summary(db, { from: '2026-10-01', to: '2026-10-31' }, 'EUR', '2026-11-05');
+    assert.deepEqual(
+      merchants.map((m) => m.name),
+      ['Aircon cleaning'],
+      'a bank line with no merchant stays out',
+    );
+  });
+
   it('compares the month in progress with the same days of the previous month', () => {
     assert.deepEqual(previousRange({ from: '2026-11-01', to: '2026-11-30' }, '2026-11-05'), { from: '2026-10-01', to: '2026-10-05' });
     assert.deepEqual(previousRange({ from: '2026-03-01', to: '2026-03-31' }, '2026-03-31'), { from: '2026-02-01', to: '2026-02-28' });

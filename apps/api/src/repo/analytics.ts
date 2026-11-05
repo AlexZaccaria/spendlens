@@ -171,10 +171,12 @@ export function summary(db: Db, range: DateRange, baseCurrency: string, today: s
   const merchants = (
     db
       .prepare(
-        `SELECT max(merchant) AS name, max(category_id) AS category, -sum(base_amount_minor) AS total, count(*) AS count,
+        // A payment typed in by hand without a merchant goes by what was typed ("Aircon cleaning");
+        // an imported one without a merchant only has its bank line, and stays out.
+        `SELECT max(coalesce(merchant, raw_description)) AS name, max(category_id) AS category, -sum(base_amount_minor) AS total, count(*) AS count,
                 ${chargedColumns('amount_minor', 'currency', 'base_amount_minor')}
          FROM transactions
-         WHERE kind = 'expense' AND date BETWEEN :from AND :to AND merchant_key IS NOT NULL AND merchant IS NOT NULL
+         WHERE kind = 'expense' AND date BETWEEN :from AND :to AND merchant_key IS NOT NULL AND (merchant IS NOT NULL OR source = 'manual')
          GROUP BY merchant_key HAVING total > 0 ORDER BY total DESC LIMIT 8`,
       )
       .all({ ...range }) as ({ name: string; category: string; total: number; count: number } & ChargedColumns)[]
