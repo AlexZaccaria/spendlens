@@ -183,6 +183,19 @@ describe('auth API', () => {
     assert.equal(accountsOfKind(t.system, 'sandbox').length, 0);
   });
 
+  it('bounds the sign-in attempts of one address across emails, not only per email', async () => {
+    const app = createApp(open());
+    const attempt = (i: number) =>
+      app.request('/api/auth/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: `victim${i}@example.com`, password: 'Summer2026!' }),
+      });
+    // Each attempt costs an argon2 hash, even for an unknown email: 50 per address every 15 minutes.
+    for (let i = 1; i <= 50; i++) assert.equal((await attempt(i)).status, 401, `attempt ${i}`);
+    assert.equal((await attempt(51)).status, 429);
+  });
+
   it('lets a request still running finish when its demo is left meanwhile', async () => {
     const app = createApp(open());
     const cookie = cookieOf(await app.request('/api/auth/demo', { method: 'POST' }));
