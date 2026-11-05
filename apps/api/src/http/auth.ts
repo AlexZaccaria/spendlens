@@ -52,8 +52,16 @@ export function sessionView(account: Account): SessionAccount {
   return { name: account.name, email: account.email, demo: isDemo(account), expiresAt: account.expiresAt };
 }
 
-/** The peer address (in-process test requests have none). */
+/**
+ * The client address. Behind a reverse proxy the peer is the proxy itself, so when TRUST_PROXY=1 the
+ * last x-forwarded-for entry (the one the proxy appended) is used; otherwise the header is ignored
+ * because a client could forge it. In-process test requests have no peer address.
+ */
 export function clientIp(c: Context): string {
+  if (process.env.TRUST_PROXY === '1') {
+    const forwarded = c.req.header('x-forwarded-for')?.split(',').pop()?.trim();
+    if (forwarded) return forwarded;
+  }
   try {
     return getConnInfo(c).remote.address ?? 'unknown';
   } catch {

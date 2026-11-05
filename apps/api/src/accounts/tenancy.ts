@@ -87,7 +87,7 @@ export class Tenancy {
     const template = this.demoTemplate();
     const account = createAccount(this.system, { kind: 'sandbox', name: 'Demo', expiresAt: new Date(now.getTime() + SANDBOX_TTL_MS).toISOString() });
     this.copy(this.db(template.id), account.id);
-    this.sweep(now);
+    this.sweep(now, account.id);
     return account;
   }
 
@@ -102,8 +102,8 @@ export class Tenancy {
   }
 
   /** Removes expired sandboxes (and the oldest beyond the cap), expired sessions and orphan files. */
-  sweep(now = new Date()): void {
-    for (const id of sandboxesToRemove(this.system, now, MAX_SANDBOXES)) this.removeAccount(id);
+  sweep(now = new Date(), protectId?: string): void {
+    for (const id of sandboxesToRemove(this.system, now, MAX_SANDBOXES)) if (id !== protectId) this.removeAccount(id);
     purgeExpiredSessions(this.system, now);
     this.collectOrphans();
   }
