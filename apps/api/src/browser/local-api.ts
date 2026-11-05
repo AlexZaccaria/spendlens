@@ -113,6 +113,8 @@ export async function startLocalApi(options: LocalApiOptions): Promise<LocalApi>
       if (!sandbox) throw new HttpError(401, 'unauthenticated', 'Enter the demo first.');
       c.set('account', sandbox.account);
       c.set('db', sandbox.db);
+      // One copy in memory, closed only when the visitor leaves: nothing to hold open.
+      c.set('holdAccount', () => () => undefined);
       await next();
     })
     .route('/', accountRoutes());

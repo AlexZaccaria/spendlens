@@ -41,7 +41,6 @@ export class Tenancy {
   private readonly inFlight = new Map<string, number>();
   private readonly pendingClose = new Map<string, Db>();
 
-
   constructor(dir: string) {
     this.dir = dir;
     this.system = openDatabase(join(dir, 'system.db'), SYSTEM_MIGRATIONS);

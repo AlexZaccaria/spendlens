@@ -3,8 +3,10 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
+import { Hono } from 'hono';
 import { createApp } from '../app.ts';
 import { openDatabase } from '../db/database.ts';
+import { clientIp } from '../http/auth.ts';
 import { getSetting, setSetting } from '../repo/settings.ts';
 import { countTransactions, insertTransactions } from '../repo/transactions.ts';
 import { hashPassword, verifyPassword } from './passwords.ts';
@@ -180,4 +182,48 @@ describe('auth API', () => {
     await app.request('/api/auth/logout', { method: 'POST', headers: { cookie } });
     assert.equal(accountsOfKind(t.system, 'sandbox').length, 0);
   });
+
+  it('lets a request still running finish when its demo is left meanwhile', async () => {
+    const app = createApp(open());
+    const cookie = cookieOf(await app.request('/api/auth/demo', { method: 'POST' }));
+    // The request has its database and is reading its body when the visitor leaves (and the copy goes).
+    const pending = app.request('/api/transactions', {
+      method: 'POST',
+      headers: { cookie, 'content-type': 'application/json' },
+      body: JSON.stringify({ date: '2026-11-01', title: 'Late', amount: -10, currency: 'EUR', categoryId: 'food.groceries' }),
+    });
+    assert.equal((await app.request('/api/auth/logout', { method: 'POST', headers: { cookie } })).status, 200);
+    assert.equal((await pending).status, 201);
+  });
+});
+
+describe('client address', () => {
+  const app = new Hono().get('/', (c) => c.text(clientIp(c)));
+  const ip = async (forwardedFor: string): Promise<string> => (await app.request('/', { headers: { 'x-forwarded-for': forwardedFor } })).text();
+  const withTrustProxy = async (value: string | undefined, check: () => Promise<void>): Promise<void> => {
+    const before = process.env['TRUST_PROXY'];
+    if (value === undefined) delete process.env['TRUST_PROXY'];
+    else process.env['TRUST_PROXY'] = value;
+    try {
+      await check();
+    } finally {
+      if (before === undefined) delete process.env['TRUST_PROXY'];
+      else process.env['TRUST_PROXY'] = before;
+    }
+  };
+
+  it('ignores X-Forwarded-For unless told how many proxies to trust', () =>
+    withTrustProxy(undefined, async () => {
+      assert.equal(await ip('203.0.113.7'), 'unknown');
+    }));
+
+  it('takes the entry the trusted proxies added, whatever the client wrote before it', () =>
+    withTrustProxy('1', async () => {
+      assert.equal(await ip('203.0.113.7'), '203.0.113.7');
+      assert.equal(await ip('6.6.6.6, 203.0.113.7'), '203.0.113.7');
+    }).then(() =>
+      withTrustProxy('2', async () => {
+        assert.equal(await ip('6.6.6.6, 203.0.113.7, 198.51.100.1'), '203.0.113.7');
+      }),
+    ));
 });

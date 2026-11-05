@@ -64,7 +64,7 @@ export function sessionView(account: Account): SessionAccount {
  * invalid, the header is ignored because a client could forge it. In-process test requests have no peer address.
  */
 export function clientIp(c: Context): string {
-  const hops = Number.parseInt(process.env.TRUST_PROXY ?? '', 10);
+  const hops = Number.parseInt(process.env['TRUST_PROXY'] ?? '', 10);
   if (Number.isInteger(hops) && hops >= 1) {
     const entries = (c.req.header('x-forwarded-for') ?? '').split(',').map((e) => e.trim()).filter(Boolean);
     const forwarded = entries[Math.max(0, entries.length - hops)];
