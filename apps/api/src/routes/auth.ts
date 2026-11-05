@@ -13,6 +13,8 @@ const REGISTRATION_OPEN = false;
 export function authRoutes(tenancy: Tenancy) {
   // Per address and email: a password cannot be guessed at speed, one visitor cannot lock out another.
   const logins = new RateLimit(10, 15 * 60_000);
+  // Per address alone: bounds guessing across many emails (and the argon2 work each attempt costs).
+  const loginsByIp = new RateLimit(50, 15 * 60_000);
   const demos = new RateLimit(20, 60 * 60_000);
 
   /** Ends the browser's current session; leaving a demo deletes its copy at once. */
@@ -34,7 +36,8 @@ export function authRoutes(tenancy: Tenancy) {
 
     .post('/login', validate('json', loginSchema), async (c) => {
       const { email, password } = c.req.valid('json');
-      if (!logins.take(`${clientIp(c)}|${email.toLowerCase()}`)) {
+      const ip = clientIp(c);
+      if (!loginsByIp.take(ip) || !logins.take(`${ip}|${email.toLowerCase()}`)) {
         throw new HttpError(429, 'too_many_attempts', 'Too many attempts: wait a few minutes.');
       }
       const login = findLogin(tenancy.system, email);
